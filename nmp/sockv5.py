@@ -6,7 +6,7 @@ import struct
 from nmp.connection import ConnectionPool
 from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
-from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, NMP_CONNECT_OK, SOCK_V5
+from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, NMP_CONNECT_OK, RSV, SOCK_V5
 
 
 class SockHandler:
@@ -31,50 +31,60 @@ class SockHandler:
         await pipe.pipe()
 
     async def parse_ver_and_reply(self):
-        req = await self.sock.recv()
-        ver, nmethods = struct.unpack('!BB', req[0:2])
+        hdr = await self.sock.recv_exactly(2)
+        ver, nmethods = struct.unpack('!BB', hdr)
         if SOCK_V5 != ver:
+            self.logger.warning(f'invalid socks ver: {ver}')
             return False
 
-        for method in [ord(req[2 + i: 3 + i]) for i in range(nmethods)]:
+        methods = await self.sock.recv_exactly(nmethods)
+        for method in methods:
             if method in IMPLEMENTED_METHODS:
                 await self.sock.send(struct.pack('!BB', SOCK_V5, method))
                 return True
 
+        self.logger.warning(f'methods exchange fail: {methods}')
         return False
 
     async def connect_and_reply(self):
-        req = await self.sock.recv()
-        ver, cmd, _, atyp = struct.unpack('!BBBB', req[0:4])
+        hdr = await self.sock.recv_exactly(4)
+        _, cmd, _, atyp = struct.unpack('!BBBB', hdr)
         if CMD_CONNECT != cmd:
             return None
 
         if ATYP_IP_V4 == atyp:
-            addr = socket.inet_ntoa(req[4:8]).encode()
-            port = struct.unpack('!H', req[8:10])[0]
+            dst = await self.sock.recv_exactly(6)
+            addr = socket.inet_ntoa(dst[:4]).encode()
+            port = struct.unpack('!H', dst[4:])[0]
         elif ATYP_DOMAINNAME == atyp:
-            addr_len = ord(req[4:5])
-            addr = req[5:5 + addr_len]
-            port = struct.unpack('!H', req[5 + addr_len: 7 + addr_len])[0]
+            length = await self.sock.recv_exactly(1)
+            addr = await self.sock.recv_exactly(ord(length))
+            port = struct.unpack('!H', await self.sock.recv_exactly(2))[0]
         else:
             return None
 
         self.logger.debug(f'connect to {addr}')
-        # need fix to right host ?
-        nhost = struct.unpack('!I', socket.inet_aton('127.0.0.1'))[0]
         wsock = await self.open_connection(atyp, addr, port)
         if wsock:
-            reply = struct.pack("!BBBBIH", SOCK_V5, 0, 0, 1, nhost, port)
-            await self.sock.send(reply)
+            await self.send_socks_reply(0, atyp, addr, port)
             return wsock
         else:
-            reply = struct.pack("!BBBBIH", SOCK_V5, 5, 1, 1, nhost, port)
-            await self.sock.send(reply)
+            await self.send_socks_reply(5, atyp, addr, port)
             return None
 
-    async def open_connection(self, addr_type, target_host, target_port):
-        req = bytearray(struct.pack("!BH", addr_type, target_port))
-        req.extend(target_host)
+    async def send_socks_reply(self, rep, atyp, addr, port):
+        reply = bytearray(struct.pack('!BBBB', SOCK_V5, rep, RSV, atyp))
+        if atyp == ATYP_IP_V4:
+            reply.extend(socket.inet_aton(addr.decode()))
+        else:
+            reply.extend(struct.pack('!B', len(addr)))
+            reply.extend(addr)
+        reply.extend(struct.pack('!H', port))
+        await self.sock.send(reply)
+
+    async def open_connection(self, ntype, host, port):
+        req = bytearray(struct.pack("!BH", ntype, port))
+        req.extend(host)
         self.logger.debug(req)
         wsock = await self.pool.new_connection()
         if not wsock:
@@ -108,6 +118,6 @@ class SockV5Server:
         try:
             await handler.handle()
         except Exception as e:
-            self.logger.warning(e)
+            self.logger.exception(e)
             if not handler.sock.closed:
                 await handler.sock.close()

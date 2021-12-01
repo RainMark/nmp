@@ -27,6 +27,9 @@ class SocketStream:
         self.logger.debug(msg)
         return msg
 
+    async def recv_exactly(self, n):
+        return await self.reader.readexactly(n)
+
     async def close(self):
         self.closed = True
         self.writer.close()

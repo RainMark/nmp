@@ -52,7 +52,7 @@ class WebSockHandler:
         rtype = struct.unpack('!B', req[:1])[0]
         if rtype == NMP_TCP_PIPE_IP or rtype == NMP_TCP_PIPE_DOMAIN:
             await self.handle_stream_type(req[1:])
-        if rtype == NMP_UDP_PIPE_IP:
+        elif rtype == NMP_UDP_PIPE_IP:
             await self.handle_datagram_type()
         else:
             self.logger.error(f'not supported type[{rtype}]')
@@ -83,9 +83,8 @@ class NmpServer:
 
         self.logger.warning(
             f'auth token failed, path: {path}, headers: {headers}')
-        status = [HTTPStatus.NOT_FOUND,
-                  HTTPStatus.INTERNAL_SERVER_ERROR,
-                  HTTPStatus.OK][randint(0, 2)]
+        status = [HTTPStatus.INTERNAL_SERVER_ERROR,
+                  HTTPStatus.OK][randint(0, 1)]
         reply = {'data': ''.join(
             choices(string.ascii_letters + string.digits, k=32))}
         return status, {'Content-Type': 'application/json'}, json.dumps(reply).encode('utf-8')
