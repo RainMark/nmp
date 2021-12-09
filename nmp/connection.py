@@ -7,7 +7,7 @@ import websockets
 from collections import deque
 from random import randint
 from nmp.log import get_logger
-from nmp.proto import NMP_UDP_PIPE_IP
+from nmp.proto import NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
 
 MAX_MSG_BUF_SIZE = 2 ** 16
 MAX_IDLE_CONNECTION = 8
@@ -42,10 +42,10 @@ class ConnectionPool:
             context.options |= ssl.OP_NO_TLSv1_3
             uri = f'{self.endpoint}/{self.token}/{dummy}'
             if self.endpoint.startswith('wss://'):
-                return await websockets.connect(uri, ssl=context,
+                return await websockets.connect(uri, max_queue=WEBSOCKETS_MAX_QUEUE, ssl=context,
                                                 server_hostname=self.endpoint.split('/')[2])
             else:
-                return await websockets.connect(uri)
+                return await websockets.connect(uri, max_queue=WEBSOCKETS_MAX_QUEUE)
         except Exception as e:
             self.logger.exception(e)
             return None
