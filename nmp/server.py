@@ -93,7 +93,9 @@ class NmpServer:
         self.load_token()
         self.logger.info(f'### Token: {self.token} ###')
         async with websockets.serve(self.dispatch, self.config.host, self.config.port,
-                                    process_request=self.http_handler, max_queue=WEBSOCKETS_MAX_QUEUE):
+                                    process_request=self.http_handler,
+                                    max_queue=WEBSOCKETS_MAX_QUEUE,
+                                    compression=None):
             await asyncio.Future()
 
     async def dispatch(self, wsock, path):

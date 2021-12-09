@@ -42,10 +42,14 @@ class ConnectionPool:
             context.options |= ssl.OP_NO_TLSv1_3
             uri = f'{self.endpoint}/{self.token}/{dummy}'
             if self.endpoint.startswith('wss://'):
-                return await websockets.connect(uri, max_queue=WEBSOCKETS_MAX_QUEUE, ssl=context,
+                return await websockets.connect(uri,
+                                                max_queue=WEBSOCKETS_MAX_QUEUE,
+                                                compression=None, ssl=context,
                                                 server_hostname=self.endpoint.split('/')[2])
             else:
-                return await websockets.connect(uri, max_queue=WEBSOCKETS_MAX_QUEUE)
+                return await websockets.connect(uri,
+                                                max_queue=WEBSOCKETS_MAX_QUEUE,
+                                                compression=None)
         except Exception as e:
             self.logger.exception(e)
             return None
