@@ -10,7 +10,7 @@ from nmp.log import get_logger
 from nmp.proto import NMP_UDP_PIPE_IP
 
 MAX_MSG_BUF_SIZE = 2 ** 16
-MAX_IDLE_CONNECTION = 2 ** 10
+MAX_IDLE_CONNECTION = 8
 
 
 class ConnectionPool:

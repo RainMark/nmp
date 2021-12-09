@@ -88,23 +88,40 @@ class DatagramHandler:
         self.message = message
         self.future = future
         self.transport = None
+        self.timer = None
 
     def connection_made(self, transport):
         self.logger.debug(f'send: {self.message}')
         self.transport = transport
+        loop = asyncio.get_running_loop()
+        self.timer = loop.call_later(
+            delay=10, callback=self.connection_timeout)
         self.transport.sendto(self.message)
 
+    def connection_timeout(self):
+        self.logger.info(f'connection timeout: {self.transport}')
+        self.connection_close()
+
     def datagram_received(self, data, addr):
-        self.logger.debug(f'received: {data}')
+        self.logger.debug(f'received: {addr}, data: {data}')
         self.future.set_result(data)
-        self.transport.close()
+        if self.timer:
+            self.timer.cancel()
+        self.connection_close()
 
     def error_received(self, exc):
         self.logger.debug(f'exception: {exc}')
         self.future.set_result(None)
 
     def connection_lost(self, exc):
-        self.logger.debug(f'connection lost')
+        self.logger.debug(f'connection lost: {exc}')
+
+    def connection_close(self):
+        if not self.transport:
+            self.transport.close()
+            self.transport = None
+        if not self.future.done():
+            self.future.set_result(None)
 
 
 class DatagramPipe:
@@ -141,7 +158,8 @@ class DatagramPipe:
         transport.close()
         if not data:
             reply = struct.pack('!B', NMP_CONNECT_FAILED)
-            await self.wsock.send(msg)
+            await self.wsock.send(reply)
+            return
         reply = bytearray(struct.pack('!B', NMP_CONNECT_OK))
         reply.extend(data)
         await self.wsock.send(reply)
