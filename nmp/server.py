@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import secrets
+import socket
 import string
 import struct
 import websockets
@@ -12,6 +13,18 @@ from http import HTTPStatus
 from nmp.log import get_logger
 from nmp.pipe import DatagramPipe, SocketStream, Pipe
 from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
+
+
+MAX_BACKLOG = 2 ** 10
+
+
+def create_reuseport_stream_socket(host, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    sock.bind((host, port))
+    sock.listen(MAX_BACKLOG)
+    sock.setblocking(False)
+    return sock
 
 
 class WebSockHandler:
@@ -92,10 +105,12 @@ class NmpServer:
     async def start_server(self):
         self.load_token()
         self.logger.info(f'### Token: {self.token} ###')
-        async with websockets.serve(self.dispatch, self.config.host, self.config.port,
-                                    process_request=self.http_handler,
-                                    max_queue=WEBSOCKETS_MAX_QUEUE,
-                                    compression=None):
+        async with websockets.serve(
+            self.dispatch, sock=create_reuseport_stream_socket(
+                self.config.host, self.config.port),
+                process_request=self.http_handler,
+                max_queue=WEBSOCKETS_MAX_QUEUE,
+                compression=None):
             await asyncio.Future()
 
     async def dispatch(self, wsock, path):

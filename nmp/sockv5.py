@@ -7,6 +7,7 @@ from nmp.connection import ConnectionPool
 from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
 from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, NMP_CONNECT_OK, RSV, SOCK_V5
+from nmp.server import create_reuseport_stream_socket
 
 
 class SockHandler:
@@ -108,8 +109,8 @@ class SockV5Server:
         self.pool = ConnectionPool(config.endpoint, config.token)
 
     async def start_server(self):
-        server = await asyncio.start_server(
-            self.dispatch, self.config.host, self.config.port)
+        server = await asyncio.start_server(self.dispatch,
+                                            sock=create_reuseport_stream_socket(self.config.host, self.config.port))
         async with server:
             await server.serve_forever()
 

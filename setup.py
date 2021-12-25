@@ -23,7 +23,6 @@ setup(
     install_requires = [
         'websockets == 10.0',
         'coloredlogs == 15.0.1',
-        'uvloop == 0.16.0',
     ],
 
     entry_points={
