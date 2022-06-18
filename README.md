@@ -3,7 +3,7 @@
 ### Setup
 
 ```bash
-$ git clone https://github.com/RainMark/nmp.git
+$ git clone https://git.oxfs.io/nmp/nmp.git
 $ cd nmp
 $ python3.8 -m venv .env
 $ source .env/bin/activate
@@ -24,13 +24,19 @@ $ nmp --server nmp --port 10010
 
 ```bash
 nmp.example.io {
-  reverse_proxy 127.0.0.1:10010 {
+  ### Token: f353f0ab21e2d93c ###
+  handle /f353f0ab21e2d93c/* {
+    reverse_proxy 127.0.0.1:10010 {
+      header_up -Origin
+    }
+  }
+  reverse_proxy https://www.baidu.com {
     header_up -Origin
   }
 
-  tls {
-    dns cloudflare your_api_token
-  }
+  # tls {
+  #   dns cloudflare your_api_token
+  # }
 }
 ```
 
