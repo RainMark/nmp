@@ -3,6 +3,7 @@
 import secrets
 import ssl
 import struct
+import sys
 import websockets
 from collections import deque
 from random import randint
@@ -41,7 +42,8 @@ class ConnectionPool:
         context.options |= ssl.OP_NO_TLSv1
         context.options |= ssl.OP_NO_TLSv1_1
         context.options |= ssl.OP_NO_COMPRESSION
-        context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
+        if sys.version_info >= (3, 8):
+            context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
         return context
 
     async def new_connection(self, headers=None):
