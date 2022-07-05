@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 import asyncio
+import base64
 import json
 import os
 import secrets
@@ -12,7 +13,8 @@ from random import randint, choices
 from http import HTTPStatus
 from nmp.log import get_logger
 from nmp.pipe import DatagramPipe, SocketStream, Pipe
-from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
+from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK, NMP_FASTPATH_HOST, NMP_FASTPATH_PAYLOAD, \
+    NMP_FASTPATH_PORT, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
 
 
 MAX_BACKLOG = 2 ** 10
@@ -56,10 +58,36 @@ class WebSockHandler:
         pipe = DatagramPipe(self.wsock)
         await pipe.pipe()
 
-    # -----------
-    # | 1 bytes |
-    # |  type   |
+    async def handle_stream_type_fastpath(self, fastpath):
+        # 0:host 1:port 2:payload
+        sock = await SocketStream.open_connection(fastpath[0], fastpath[1])
+        if not sock:
+            await self.wsock.close()
+            return
+        await sock.send(fastpath[2])
+        pipe = Pipe(self.wsock, sock)
+        await pipe.pipe()
+
+    async def stream_fastpath(self):
+        headers = self.wsock.request_headers
+        if headers is None:
+            return None
+        host = headers.get(NMP_FASTPATH_HOST, None)
+        port = headers.get(NMP_FASTPATH_PORT, None)
+        payload = headers.get(NMP_FASTPATH_PAYLOAD, None)
+        if host is None or port is None or payload is None:
+            return None
+        return (host, int(port), base64.b64decode(payload))
+
     async def handle(self):
+        fastpath = await self.stream_fastpath()
+        if fastpath is not None:
+            await self.handle_stream_type_fastpath(fastpath)
+            return
+
+        # -----------
+        # | 1 bytes |
+        # |  type   |
         req = await self.wsock.recv()
         self.logger.debug(req)
         rtype = struct.unpack('!B', req[:1])[0]

@@ -21,9 +21,9 @@ class SocketStream:
         self.writer.write(msg)
         await self.writer.drain()
 
-    async def recv(self):
+    async def recv(self, n=BUFFER_SIZE):
         self.logger.debug('recv')
-        msg = await self.reader.read(BUFFER_SIZE)
+        msg = await self.reader.read(n)
         self.logger.debug(msg)
         return msg
 

@@ -33,7 +33,7 @@ class ConnectionPool:
             return
         self.queue.append(connection)
 
-    async def new_connection(self):
+    async def new_connection(self, headers=None):
         try:
             dummy = secrets.token_hex(randint(1, 16))
             context = ssl.create_default_context()
@@ -43,11 +43,13 @@ class ConnectionPool:
             uri = f'{self.endpoint}/{self.token}/{dummy}'
             if self.endpoint.startswith('wss://'):
                 return await websockets.connect(uri,
+                                                extra_headers=headers,
                                                 max_queue=WEBSOCKETS_MAX_QUEUE,
                                                 compression=None, ssl=context,
                                                 server_hostname=self.endpoint.split('/')[2])
             else:
                 return await websockets.connect(uri,
+                                                extra_headers=headers,
                                                 max_queue=WEBSOCKETS_MAX_QUEUE,
                                                 compression=None)
         except Exception as e:

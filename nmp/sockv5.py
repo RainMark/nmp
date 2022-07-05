@@ -1,13 +1,15 @@
 #!/bin/env python3
 
 import asyncio
+import base64
 import socket
 import struct
 from nmp.connection import ConnectionPool
 from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
-from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, NMP_CONNECT_OK, RSV, SOCK_V5
 from nmp.server import create_reuseport_stream_socket
+from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, \
+    NMP_FASTPATH_HOST, NMP_FASTPATH_MAX_BYTES, NMP_FASTPATH_PAYLOAD, NMP_FASTPATH_PORT, RSV, SOCK_V5
 
 
 class SockHandler:
@@ -64,14 +66,15 @@ class SockHandler:
         else:
             return None
 
-        self.logger.debug(f'connect to {addr}')
-        wsock = await self.open_connection(atyp, addr, port)
-        if wsock:
-            await self.send_socks_reply(0, atyp, addr, port)
-            return wsock
-        else:
-            await self.send_socks_reply(5, atyp, addr, port)
-            return None
+        await self.send_socks_reply(0, atyp, addr, port)
+        data = await self.sock.recv(NMP_FASTPATH_MAX_BYTES)
+        # encode() to str, avoid get b'' hint
+        headers = {
+            NMP_FASTPATH_HOST: addr.decode(),
+            NMP_FASTPATH_PORT: port,
+            NMP_FASTPATH_PAYLOAD: base64.b64encode(data).decode()
+        }
+        return await self.pool.new_connection(headers)
 
     async def send_socks_reply(self, rep, atyp, addr, port):
         reply = bytearray(struct.pack('!BBBB', SOCK_V5, rep, RSV, atyp))
@@ -82,24 +85,6 @@ class SockHandler:
             reply.extend(addr)
         reply.extend(struct.pack('!H', port))
         await self.sock.send(reply)
-
-    async def open_connection(self, ntype, host, port):
-        req = bytearray(struct.pack("!BH", ntype, port))
-        req.extend(host)
-        self.logger.debug(req)
-        wsock = await self.pool.new_connection()
-        if not wsock:
-            return None
-
-        await wsock.send(req)
-        reply = await wsock.recv()
-        code = struct.unpack('!B', reply[:1])[0]
-        if code != NMP_CONNECT_OK:
-            self.logger.warning(f'connect refused, error code {code}')
-            await wsock.close()
-            return None
-
-        return wsock
 
 
 class SockV5Server:
