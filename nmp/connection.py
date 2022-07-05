@@ -38,8 +38,6 @@ class ConnectionPool:
     def new_ssl_context():
         context = ssl.create_default_context()
         context.options |= ssl.OP_NO_COMPRESSION
-        context.options |= ssl.OP_NO_SSLv2
-        context.options |= ssl.OP_NO_SSLv3
         context.options |= ssl.OP_NO_TLSv1
         context.options |= ssl.OP_NO_TLSv1_1
         if ssl.HAS_TLSv1_3:
