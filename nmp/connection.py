@@ -33,23 +33,27 @@ class ConnectionPool:
             return
         self.queue.append(connection)
 
+    @staticmethod
+    def new_ssl_context():
+        context = ssl.create_default_context()
+        context.options |= ssl.OP_NO_SSLv2
+        context.options |= ssl.OP_NO_SSLv3
+        context.options |= ssl.OP_NO_TLSv1
+        context.options |= ssl.OP_NO_TLSv1_1
+        context.options |= ssl.OP_NO_COMPRESSION
+        context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
+        return context
+
     async def new_connection(self, headers=None):
         try:
             dummy = secrets.token_hex(randint(1, 4))
-            context = ssl.create_default_context()
-            context.options |= ssl.OP_NO_SSLv2
-            context.options |= ssl.OP_NO_SSLv3
-            context.options |= ssl.OP_NO_TLSv1
-            context.options |= ssl.OP_NO_TLSv1_1
-            context.options |= ssl.OP_NO_COMPRESSION
-            context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
             uri = f'{self.endpoint}/{self.token}/{dummy}'
             if self.endpoint.startswith('wss://'):
                 return await websockets.connect(uri,
                                                 extra_headers=headers,
                                                 max_queue=WEBSOCKETS_MAX_QUEUE,
                                                 ping_interval=None,
-                                                compression=None, ssl=context,
+                                                compression=None, ssl=ConnectionPool.new_ssl_context(),
                                                 server_hostname=self.endpoint.split('/')[2])
             else:
                 return await websockets.connect(uri,
