@@ -42,7 +42,7 @@ class ConnectionPool:
         context.options |= ssl.OP_NO_TLSv1
         context.options |= ssl.OP_NO_TLSv1_1
         context.options |= ssl.OP_NO_COMPRESSION
-        if sys.version_info >= (3, 8):
+        if hasattr(ssl, 'OP_ENABLE_MIDDLEBOX_COMPAT'):
             context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
         return context
 
