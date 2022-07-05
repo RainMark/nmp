@@ -3,7 +3,6 @@
 import secrets
 import ssl
 import struct
-import sys
 import websockets
 from collections import deque
 from random import randint
