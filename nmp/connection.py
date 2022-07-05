@@ -37,9 +37,12 @@ class ConnectionPool:
         try:
             dummy = secrets.token_hex(randint(1, 4))
             context = ssl.create_default_context()
+            context.options |= ssl.OP_NO_SSLv2
+            context.options |= ssl.OP_NO_SSLv3
             context.options |= ssl.OP_NO_TLSv1
             context.options |= ssl.OP_NO_TLSv1_1
-            context.options |= ssl.OP_NO_TLSv1_3
+            context.options |= ssl.OP_NO_COMPRESSION
+            context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
             uri = f'{self.endpoint}/{self.token}/{dummy}'
             if self.endpoint.startswith('wss://'):
                 return await websockets.connect(uri,

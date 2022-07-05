@@ -106,6 +106,8 @@ def main():
         import uvloop
         uvloop.install()
     try:
+        import ssl
+        logger.info(ssl.OPENSSL_VERSION)
         if config.server == 'sockv5':
             asyncio.run(start_sockv5_server(config))
         elif config.server == 'tproxy':
