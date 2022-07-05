@@ -39,7 +39,8 @@ class SocketStream:
     @staticmethod
     async def open_connection(host, port):
         try:
-            r, w = await asyncio.open_connection(host, port, ssl=ConnectionPool.new_ssl_context())
+            r, w = await asyncio.open_connection(host, port,
+                                                 ssl=ConnectionPool.new_ssl_context(compat_v1=True))
             return SocketStream(r, w)
         except Exception as e:
             get_logger(__name__).exception(e)
