@@ -6,11 +6,9 @@ import json
 import os
 import secrets
 import socket
-import string
 import struct
 import websockets
-from random import randint, choices
-from http import HTTPStatus
+from random import randint
 from nmp.log import get_logger
 from nmp.pipe import DatagramPipe, SocketStream, Pipe
 from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK, NMP_FASTPATH_HOST, NMP_FASTPATH_PAYLOAD, \
@@ -23,6 +21,7 @@ MAX_BACKLOG = 2 ** 10
 def create_reuseport_stream_socket(host, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     sock.bind((host, port))
     sock.listen(MAX_BACKLOG)
     sock.setblocking(False)
@@ -113,30 +112,14 @@ class NmpServer:
             with open(self.config.conf, 'w') as f:
                 f.write(self.token)
 
-    def token_auth(self, path):
-        # /token/dummy
-        return self.token == path[1:].split('/')[0]
-
-    def http_handler(self, path, headers):
-        self.logger.debug(path)
-        if self.token_auth(path):
-            return None
-
-        self.logger.warning(
-            f'auth token failed, path: {path}, headers: {headers}')
-        status = [HTTPStatus.INTERNAL_SERVER_ERROR,
-                  HTTPStatus.OK][randint(0, 1)]
-        reply = {'data': ''.join(
-            choices(string.ascii_letters + string.digits, k=32))}
-        return status, {'Content-Type': 'application/json'}, json.dumps(reply).encode('utf-8')
-
     async def start_server(self):
         self.load_token()
         self.logger.info(f'### Token: {self.token} ###')
         async with websockets.serve(
             self.dispatch, sock=create_reuseport_stream_socket(
                 self.config.host, self.config.port),
-                process_request=self.http_handler,
+                ping_interval=None,
+                process_request=None,
                 max_queue=WEBSOCKETS_MAX_QUEUE,
                 compression=None):
             await asyncio.Future()
