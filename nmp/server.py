@@ -2,7 +2,6 @@
 
 import asyncio
 import base64
-import json
 import os
 import secrets
 import socket
@@ -12,7 +11,7 @@ from random import randint
 from nmp.log import get_logger
 from nmp.pipe import DatagramPipe, SocketStream, Pipe
 from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK, NMP_FASTPATH_HOST, NMP_FASTPATH_PAYLOAD, \
-    NMP_FASTPATH_PORT, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
+    NMP_FASTPATH_PORT, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, NMP_UDP_PIPE_IP_WITH_DATA, WEBSOCKETS_MAX_QUEUE
 
 
 MAX_BACKLOG = 2 ** 10
@@ -50,6 +49,22 @@ class WebSockHandler:
 
         reply = struct.pack('!B', NMP_CONNECT_OK)
         await self.wsock.send(reply)
+        pipe = Pipe(self.wsock, sock)
+        await pipe.pipe()
+
+    # ---------------------------------------------
+    # | 2 bytes |  2 bytes |  length bytes | ...  |
+    # |   port  |  length  |   ip/domain   | data |
+    async def handle_stream_type_with_data(self, data):
+        port, length = struct.unpack('!HH', data[:4])
+        offset = length + 4
+        host = data[4:offset].decode()
+        sock = await SocketStream.open_connection(host, port)
+        if not sock:
+            await self.wsock.close()
+            return
+
+        await sock.send(data[offset:])
         pipe = Pipe(self.wsock, sock)
         await pipe.pipe()
 
@@ -94,6 +109,8 @@ class WebSockHandler:
             await self.handle_stream_type(req[1:])
         elif rtype == NMP_UDP_PIPE_IP:
             await self.handle_datagram_type()
+        elif rtype == NMP_UDP_PIPE_IP_WITH_DATA:
+            await self.handle_stream_type_with_data(req[1:])
         else:
             self.logger.error(f'not supported type[{rtype}]')
 

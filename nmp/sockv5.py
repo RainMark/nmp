@@ -9,7 +9,7 @@ from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
 from nmp.server import create_reuseport_stream_socket
 from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, \
-    NMP_FASTPATH_HOST, NMP_FASTPATH_MAX_BYTES, NMP_FASTPATH_PAYLOAD, NMP_FASTPATH_PORT, RSV, SOCK_V5
+    NMP_FASTPATH_HOST, NMP_FASTPATH_MAX_BYTES, NMP_FASTPATH_PAYLOAD, NMP_FASTPATH_PORT, NMP_UDP_PIPE_IP_WITH_DATA, RSV, SOCK_V5
 
 
 class SockHandler:
@@ -68,6 +68,9 @@ class SockHandler:
 
         await self.send_socks_reply(0, atyp, addr, port)
         data = await self.sock.recv(NMP_FASTPATH_MAX_BYTES)
+        if self.pool.do_pre_connect:
+            return await self.pre_connect_path(addr, port, data)
+
         # encode() to str, avoid get b'' hint
         headers = {
             NMP_FASTPATH_HOST: addr.decode(),
@@ -75,6 +78,17 @@ class SockHandler:
             NMP_FASTPATH_PAYLOAD: base64.b64encode(data).decode()
         }
         return await self.pool.new_connection(headers)
+
+    async def pre_connect_path(self, host, port, data):
+        wsock = await self.pool.new_connection()
+        if not wsock:
+            return None
+        req = bytearray(struct.pack(
+            '!BHH', NMP_UDP_PIPE_IP_WITH_DATA, port, len(host)))
+        req.extend(host)
+        req.extend(data)
+        await wsock.send(req)
+        return wsock
 
     async def send_socks_reply(self, rep, atyp, addr, port):
         reply = bytearray(struct.pack('!BBBB', SOCK_V5, rep, RSV, atyp))
@@ -91,7 +105,8 @@ class SockV5Server:
     def __init__(self, config):
         self.logger = get_logger(__name__)
         self.config = config
-        self.pool = ConnectionPool(config.endpoint, config.token)
+        self.pool = ConnectionPool(
+            config.endpoint, config.token, pre_connect=config.pre_connect)
 
     async def start_server(self):
         server = await asyncio.start_server(self.dispatch,

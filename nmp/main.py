@@ -24,6 +24,7 @@ class Config:
         # for sockv5
         self.endpoint = None
         self.token = None
+        self.pre_connect = False
         # for nmp server
         self.conf = os.path.join(Path.home(), '.NMP_TOKEN')
 
@@ -39,6 +40,7 @@ class Config:
                             help='nmp server endpoint (wss://example.com)')
         parser.add_argument('--token', dest='token', help='nmp server token')
         parser.add_argument('--uvloop', dest='uvloop', help='use uvloop')
+        parser.add_argument('--pre_connect', dest='pre_connect', help='pre connect')
         args = parser.parse_args()
         if args.server:
             self.server = args.server
@@ -50,8 +52,10 @@ class Config:
             self.endpoint = args.endpoint
         if args.token:
             self.token = args.token
-        if args.uvloop and 'yes' == args.uvloop:
+        if args.uvloop:
             self.uvloop = True
+        if args.pre_connect:
+            self.pre_connect = True
 
         if not self.validate():
             parser.print_help()
