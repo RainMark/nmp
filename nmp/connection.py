@@ -69,7 +69,7 @@ class ConnectionPool:
                                             ping_interval=None, compression=None,
                                             ssl=ctx, server_hostname=name)
         except Exception as e:
-            self.logger.exception(e)
+            self.logger.info(str(e))
             return None
 
     async def try_get_connection(self):
@@ -81,26 +81,29 @@ class ConnectionPool:
             return self.pre_connected_queue.popleft()
         else:
             self.logger.info('miss hit!')
-            self.loop.create_task(self.__do_pre_connect())
+            self.loop.create_task(self.__pre_connect())
             return None
 
-    async def __do_pre_connect(self):
+    async def __pre_connect(self):
         self.logger.debug('connect!')
         while len(self.pre_connected_queue) < MAX_PRE_CONNECTED_CONNECTION:
             self.pre_connected_queue.append(await self.new_connection())
 
+    async def __close_pre_connect(self):
+        while len(self.pre_connected_queue) > 0:
+            wsock = self.pre_connected_queue.popleft()
+            if wsock is not None:
+                try:
+                    await wsock.close()
+                except Exception as e:
+                    self.logger.info(str(e))
+
     async def __pre_connect_loop_task(self):
         while True:
-            try:
-                current = time.time()
-                if current - self.last_active > MAX_INACTIVE_TIME:
-                    self.last_active = current
-                    self.logger.debug('close!')
-                    while len(self.pre_connected_queue) > 0:
-                        wsock = self.pre_connected_queue.popleft()
-                        if wsock is not None:
-                            await wsock.close()
-                await self.__do_pre_connect()
-            except Exception as e:
-                self.logger.exception(e)
+            if time.time() - self.last_active > MAX_INACTIVE_TIME:
+                if len(self.pre_connected_queue) > 0:
+                    self.logger.info('close!')
+                    await self.__close_pre_connect()
+            else:
+                await self.__pre_connect()
             await asyncio.sleep(PRE_CONNECTED_TASK_SLEEP)

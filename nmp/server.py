@@ -146,6 +146,8 @@ class NmpServer:
         self.logger.debug(f'connect: {path}')
         try:
             await handler.handle()
+        except websockets.ConnectionClosedOK as e:
+            self.logger.debug(str(e))
         except Exception as e:
             self.logger.exception(e)
             if not wsock.closed:

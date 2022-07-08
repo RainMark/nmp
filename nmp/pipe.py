@@ -4,7 +4,6 @@ import asyncio
 import socket
 import struct
 import websockets
-from nmp.connection import ConnectionPool
 from nmp.log import get_logger
 from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK
 
@@ -46,9 +45,8 @@ class SocketStream:
             return None
 
 
-PIPE_EXCEPTION = (RuntimeError, TimeoutError, ConnectionResetError,
-                  websockets.ConnectionClosedError,
-                  websockets.ConnectionClosedOK)
+PIPE_EXCEPTION = (RuntimeError, TimeoutError,
+                  ConnectionResetError, websockets.WebSocketException)
 
 
 class Pipe:
@@ -67,7 +65,7 @@ class Pipe:
                 await w.send(msg)
             except PIPE_EXCEPTION as e:
                 await self.close()
-                self.logger.debug(e)
+                self.logger.debug(str(e))
             except Exception as e:
                 await self.close()
                 self.logger.exception(e)
@@ -171,7 +169,7 @@ class DatagramPipe:
             try:
                 pipeing = await self.accept()
             except PIPE_EXCEPTION as e:
-                self.logger.debug(e)
+                self.logger.debug(str(e))
                 pipeing = False
             except Exception as e:
                 self.logger.exception(e)
