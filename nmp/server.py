@@ -41,7 +41,7 @@ class WebSockHandler:
         self.logger.debug(host)
         self.logger.debug(port)
         sock = await SocketStream.open_connection(host, port)
-        if not sock:
+        if sock is None:
             reply = struct.pack('!B', NMP_CONNECT_FAILED)
             await self.wsock.send(reply)
             await self.wsock.close()
@@ -60,7 +60,7 @@ class WebSockHandler:
         offset = length + 4
         host = data[4:offset].decode()
         sock = await SocketStream.open_connection(host, port)
-        if not sock:
+        if sock is None:
             await self.wsock.close()
             return
 
@@ -75,7 +75,7 @@ class WebSockHandler:
     async def handle_stream_type_fastpath(self, fastpath):
         # 0:host 1:port 2:payload
         sock = await SocketStream.open_connection(fastpath[0], fastpath[1])
-        if not sock:
+        if sock is None:
             await self.wsock.close()
             return
         await sock.send(fastpath[2])

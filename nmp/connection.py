@@ -29,7 +29,7 @@ class ConnectionPool:
         self.last_active = time.time()
         self.loop = asyncio.get_event_loop()
         if self.pre_connect:
-            self.loop.create_task(self.pre_connect_loop_task())
+            self.loop.create_task(self.__pre_connect_loop_task())
 
     async def open_connection(self):
         if len(self.queue) > 0:
@@ -57,57 +57,50 @@ class ConnectionPool:
         return context
 
     async def new_connection(self, headers=None):
-        if headers is not None or not self.pre_connect:
-            return await self.do_connect(headers)
-
-        self.last_active = time.time()
-        if len(self.pre_connected_queue) > 0:
-            wsock = self.pre_connected_queue.popleft()
-            if not wsock:
-                wsock = await self.do_connect(headers=None)
-            self.logger.debug('hit!')
-            return wsock
-        else:
-            self.logger.info('miss hit!')
-            self.loop.create_task(self.do_pre_connect())
-            return await self.do_connect(headers=None)
-
-    async def do_pre_connect(self):
-        self.logger.debug('pre connect')
-        while len(self.pre_connected_queue) < MAX_PRE_CONNECTED_CONNECTION:
-            self.pre_connected_queue.append(await self.do_connect(headers=None))
-
-    async def pre_connect_loop_task(self):
-        while True:
-            try:
-                if time.time() - self.last_active > MAX_INACTIVE_TIME:
-                    self.logger.debug('close timeout connection')
-                    while len(self.pre_connected_queue) > 0:
-                        wsock = self.pre_connected_queue.popleft()
-                        if wsock:
-                            await wsock.close()
-                await self.do_pre_connect()
-            except Exception as e:
-                self.logger.exception(e)
-            await asyncio.sleep(PRE_CONNECTED_TASK_SLEEP)
-
-    async def do_connect(self, headers):
+        dummy = secrets.token_hex(randint(1, 4))
+        uri = f'{self.endpoint}/{self.token}/{dummy}'
+        ctx, name = None, None
+        if self.endpoint.startswith('wss://'):
+            ctx, name = ConnectionPool.new_ssl_context(
+            ), self.endpoint.split('/')[2]
         try:
-            dummy = secrets.token_hex(randint(1, 4))
-            uri = f'{self.endpoint}/{self.token}/{dummy}'
-            if self.endpoint.startswith('wss://'):
-                return await websockets.connect(uri,
-                                                extra_headers=headers,
-                                                max_queue=WEBSOCKETS_MAX_QUEUE,
-                                                ping_interval=None,
-                                                compression=None, ssl=ConnectionPool.new_ssl_context(),
-                                                server_hostname=self.endpoint.split('/')[2])
-            else:
-                return await websockets.connect(uri,
-                                                extra_headers=headers,
-                                                ping_interval=None,
-                                                max_queue=WEBSOCKETS_MAX_QUEUE,
-                                                compression=None)
+            return await websockets.connect(uri, extra_headers=headers,
+                                            max_queue=WEBSOCKETS_MAX_QUEUE,
+                                            ping_interval=None, compression=None,
+                                            ssl=ctx, server_hostname=name)
         except Exception as e:
             self.logger.exception(e)
             return None
+
+    async def try_get_connection(self):
+        if not self.pre_connect:
+            return None
+        self.last_active = time.time()
+        if len(self.pre_connected_queue) > 0:
+            self.logger.debug('hit!')
+            return self.pre_connected_queue.popleft()
+        else:
+            self.logger.info('miss hit!')
+            self.loop.create_task(self.__do_pre_connect())
+            return None
+
+    async def __do_pre_connect(self):
+        self.logger.debug('connect!')
+        while len(self.pre_connected_queue) < MAX_PRE_CONNECTED_CONNECTION:
+            self.pre_connected_queue.append(await self.new_connection())
+
+    async def __pre_connect_loop_task(self):
+        while True:
+            try:
+                current = time.time()
+                if current - self.last_active > MAX_INACTIVE_TIME:
+                    self.last_active = current
+                    self.logger.debug('close!')
+                    while len(self.pre_connected_queue) > 0:
+                        wsock = self.pre_connected_queue.popleft()
+                        if wsock is not None:
+                            await wsock.close()
+                await self.__do_pre_connect()
+            except Exception as e:
+                self.logger.exception(e)
+            await asyncio.sleep(PRE_CONNECTED_TASK_SLEEP)

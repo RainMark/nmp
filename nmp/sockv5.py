@@ -16,7 +16,7 @@ class SockHandler:
     def __init__(self, sock, pool: ConnectionPool):
         self.logger = get_logger(__name__)
         self.sock = sock
-        self.pool = pool
+        self.connection_pool = pool
         self.pipeing = False
 
     async def handle(self):
@@ -26,7 +26,7 @@ class SockHandler:
             return
 
         wsock = await self.connect_and_reply()
-        if not wsock:
+        if wsock is None:
             await self.sock.close()
             return
 
@@ -68,27 +68,12 @@ class SockHandler:
 
         await self.send_socks_reply(0, atyp, addr, port)
         data = await self.sock.recv(NMP_FASTPATH_MAX_BYTES)
-        if self.pool.do_pre_connect:
-            return await self.pre_connect_path(addr, port, data)
+        wsock = await self.connection_pool.try_get_connection()
+        if wsock is not None:
+            await self.connect_and_send_data(wsock, addr, port, data)
+            return wsock
 
-        # encode() to str, avoid get b'' hint
-        headers = {
-            NMP_FASTPATH_HOST: addr.decode(),
-            NMP_FASTPATH_PORT: port,
-            NMP_FASTPATH_PAYLOAD: base64.b64encode(data).decode()
-        }
-        return await self.pool.new_connection(headers)
-
-    async def pre_connect_path(self, host, port, data):
-        wsock = await self.pool.new_connection()
-        if not wsock:
-            return None
-        req = bytearray(struct.pack(
-            '!BHH', NMP_UDP_PIPE_IP_WITH_DATA, port, len(host)))
-        req.extend(host)
-        req.extend(data)
-        await wsock.send(req)
-        return wsock
+        return await self.connection_pool.new_connection(self.make_headers(addr, port, data))
 
     async def send_socks_reply(self, rep, atyp, addr, port):
         reply = bytearray(struct.pack('!BBBB', SOCK_V5, rep, RSV, atyp))
@@ -100,12 +85,26 @@ class SockHandler:
         reply.extend(struct.pack('!H', port))
         await self.sock.send(reply)
 
+    async def connect_and_send_data(self, wsock, host, port, data):
+        req = bytearray(struct.pack(
+            '!BHH', NMP_UDP_PIPE_IP_WITH_DATA, port, len(host)))
+        req.extend(host)
+        req.extend(data)
+        await wsock.send(req)
+
+    def make_headers(self, host, port, data):
+        return {
+            NMP_FASTPATH_HOST: host.decode(),
+            NMP_FASTPATH_PORT: port,
+            NMP_FASTPATH_PAYLOAD: base64.b64encode(data).decode()
+        }
+
 
 class SockV5Server:
     def __init__(self, config):
         self.logger = get_logger(__name__)
         self.config = config
-        self.pool = ConnectionPool(
+        self.connection_pool = ConnectionPool(
             config.endpoint, config.token, pre_connect=config.pre_connect)
 
     async def start_server(self):
@@ -115,7 +114,7 @@ class SockV5Server:
             await server.serve_forever()
 
     async def dispatch(self, r, w):
-        handler = SockHandler(SocketStream(r, w), self.pool)
+        handler = SockHandler(SocketStream(r, w), self.connection_pool)
         try:
             await handler.handle()
         except Exception as e:
