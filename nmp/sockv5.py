@@ -9,7 +9,7 @@ from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
 from nmp.server import create_reuseport_stream_socket
 from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, \
-    NMP_FASTPATH_HOST, NMP_FASTPATH_MAX_BYTES, NMP_FASTPATH_PAYLOAD, NMP_FASTPATH_PORT, NMP_UDP_PIPE_IP_WITH_DATA, RSV, SOCK_V5
+    NMP_FASTPATH_HOST, NMP_FASTPATH_MAX_BYTES, NMP_FASTPATH_PAYLOAD, NMP_FASTPATH_PORT, NMP_TCP_PIPE_WITH_DATA, RSV, SOCK_V5
 
 
 class SockHandler:
@@ -87,7 +87,7 @@ class SockHandler:
 
     async def connect_and_send_data(self, wsock, host, port, data):
         req = bytearray(struct.pack(
-            '!BHH', NMP_UDP_PIPE_IP_WITH_DATA, port, len(host)))
+            '!BHH', NMP_TCP_PIPE_WITH_DATA, port, len(host)))
         req.extend(host)
         req.extend(data)
         await wsock.send(req)

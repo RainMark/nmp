@@ -11,7 +11,7 @@ from random import randint
 from nmp.log import get_logger
 from nmp.pipe import DatagramPipe, SocketStream, Pipe
 from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK, NMP_FASTPATH_HOST, NMP_FASTPATH_PAYLOAD, \
-    NMP_FASTPATH_PORT, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, NMP_UDP_PIPE_IP_WITH_DATA, WEBSOCKETS_MAX_QUEUE
+    NMP_FASTPATH_PORT, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, NMP_TCP_PIPE_WITH_DATA, WEBSOCKETS_MAX_QUEUE
 
 
 MAX_BACKLOG = 2 ** 10
@@ -109,7 +109,7 @@ class WebSockHandler:
             await self.handle_stream_type(req[1:])
         elif rtype == NMP_UDP_PIPE_IP:
             await self.handle_datagram_type()
-        elif rtype == NMP_UDP_PIPE_IP_WITH_DATA:
+        elif rtype == NMP_TCP_PIPE_WITH_DATA:
             await self.handle_stream_type_with_data(req[1:])
         else:
             self.logger.error(f'not supported type[{rtype}]')
