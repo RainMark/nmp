@@ -135,10 +135,9 @@ class NmpServer:
         async with websockets.serve(
             self.dispatch, sock=create_reuseport_stream_socket(
                 self.config.host, self.config.port),
-                ping_interval=None,
-                process_request=None,
                 max_queue=WEBSOCKETS_MAX_QUEUE,
-                compression=None):
+                ping_interval=None, ping_timeout=None,
+                process_request=None, compression=None):
             await asyncio.Future()
 
     async def dispatch(self, wsock, path):

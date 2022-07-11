@@ -66,8 +66,9 @@ class ConnectionPool:
         try:
             return await websockets.connect(uri, extra_headers=headers,
                                             max_queue=WEBSOCKETS_MAX_QUEUE,
-                                            ping_interval=None, compression=None,
-                                            ssl=ctx, server_hostname=name)
+                                            # FIXME: add dummy data to ping/pong payload
+                                            ping_interval=30, ping_timeout=None,
+                                            compression=None, ssl=ctx, server_hostname=name)
         except Exception as e:
             self.logger.info(str(e))
             return None
@@ -77,12 +78,15 @@ class ConnectionPool:
             return None
         self.last_active = time.time()
         if len(self.pre_connected_queue) > 0:
-            self.logger.debug('hit!')
-            return self.pre_connected_queue.popleft()
-        else:
-            self.logger.info('miss hit!')
-            self.loop.create_task(self.__pre_connect())
-            return None
+            wsock = self.pre_connected_queue.popleft()
+            if not wsock.closed:
+                self.logger.debug('hit!')
+                return wsock
+            self.logger.info('closed!')
+            self.loop.create_task(self.__close_pre_connect())
+        self.logger.info('miss hit!')
+        self.loop.create_task(self.__pre_connect())
+        return None
 
     async def __pre_connect(self):
         self.logger.debug('connect!')

@@ -67,8 +67,11 @@ class Pipe:
                 await self.close()
                 self.logger.debug(str(e))
             except Exception as e:
-                await self.close()
-                self.logger.exception(e)
+                self.logger.error(str(e))
+                try:
+                    await self.close()
+                except Exception as e:
+                    self.logger.info(str(e))
 
     async def pipe(self):
         self.pipeing = True
