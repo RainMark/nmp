@@ -21,7 +21,7 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires = [
-        'websockets == 10.0',
+        'websockets == 10.3',
         'coloredlogs == 15.0.1',
     ],
 
