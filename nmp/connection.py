@@ -12,7 +12,7 @@ from nmp.log import get_logger
 from nmp.proto import NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
 
 MAX_MSG_BUF_SIZE = 2 ** 16
-MAX_IDLE_CONNECTION = 8
+MAX_IDLE_CONNECTION = 4
 MAX_PRE_CONNECTED_CONNECTION = 8
 MAX_INACTIVE_TIME = 300
 PRE_CONNECTED_TASK_SLEEP = 5
@@ -79,12 +79,10 @@ class ConnectionPool:
         self.last_active = time.time()
         if len(self.pre_connected_queue) > 0:
             wsock = self.pre_connected_queue.popleft()
-            if not wsock.closed:
-                self.logger.debug('hit!')
+            if wsock is not None and not wsock.closed:
                 return wsock
-            self.logger.info('closed!')
-            self.loop.create_task(self.__close_pre_connect())
-        self.logger.info('miss hit!')
+            self.logger.debug('closed!')
+        self.logger.info('miss!')
         self.loop.create_task(self.__pre_connect())
         return None
 
