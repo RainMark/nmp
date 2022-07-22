@@ -72,7 +72,7 @@ class ConnectionPool:
                                             ping_interval=30, ping_timeout=None,
                                             compression=None, ssl=ctx, server_hostname=name)
         except Exception as e:
-            self.logger.info(str(e))
+            self.logger.exception(e)
             return None
 
     async def try_get_connection(self):
