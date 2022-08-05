@@ -2,6 +2,7 @@
 
 import asyncio
 import secrets
+import socket
 import ssl
 import struct
 import time
@@ -58,19 +59,45 @@ class ConnectionPool:
             context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
         return context
 
+    @staticmethod
+    def in_blacklist(addr):
+        # skip cloudflare bad ip (104.xxx.xxx.xxx)
+        return addr[4][0].startswith('104.')
+
+    async def getaddr(self, host, port):
+        addrs = await self.loop.getaddrinfo(host, port, family=socket.AF_INET, proto=socket.IPPROTO_TCP)
+        for addr in addrs:
+            if not ConnectionPool.in_blacklist(addr):
+                return addr[4][0], port
+        return None, None
+
     async def new_connection(self, headers=None):
         dummy = secrets.token_hex(randint(1, 4))
         uri = f'{self.endpoint}/{self.token}/{dummy}'
-        ctx, name = None, None
+        ctx, hostname, port = None, None, 80
         if self.endpoint.startswith('wss://'):
-            ctx, name = ConnectionPool.new_ssl_context(
-            ), self.endpoint.split('/')[2]
+            ctx, hostname, port = ConnectionPool.new_ssl_context(
+            ), self.endpoint.split('/')[2], 443
         try:
-            return await websockets.connect(uri, extra_headers=headers,
-                                            max_queue=WEBSOCKETS_MAX_QUEUE,
-                                            # FIXME: add dummy data to ping/pong payload
-                                            ping_interval=30, ping_timeout=None,
-                                            compression=None, ssl=ctx, server_hostname=name)
+            host, port = await self.getaddr(hostname, port)
+            kws = {
+                'host': host,
+                'port': port,
+                'ssl': ctx,
+                'server_hostname': hostname,
+                'extra_headers': headers,
+                'max_queue': WEBSOCKETS_MAX_QUEUE,
+                'compression': None,
+
+                # FIXME: add dummy data to ping/pong payload
+                'ping_interval': 30,
+                'ping_timeout': None,
+            }
+            # fall back
+            if host is None or port is None:
+                kws.pop('host')
+                kws.pop('port')
+            return await websockets.connect(uri, **kws)
         except Exception as e:
             self.logger.exception(e)
             return None
