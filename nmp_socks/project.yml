@@ -1,0 +1,43 @@
+name: nmp
+options:
+  bundleIdPrefix: com.rainmark.nmp
+  deploymentTarget:
+    iOS: 15.0
+
+schemes:
+  nmp:
+    shared: true
+    build:
+      targets:
+        nmp: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+targets:
+  nmp:
+    type: application
+    platform: iOS
+    sources:
+      - path: nmp_socks
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.rainmark.nmp.socks
+      INFOPLIST_FILE: nmp_socks/Info.plist
+      PRODUCT_NAME: nmp
+      configs:
+        Debug:
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: "" # 您可以在 Xcode 中手动选择或保持为空以进行本地模拟器测试
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "iPhone Distribution" # 典型的 Ad-Hoc/AppStore 签名身份
+          # PROVISIONING_PROFILE_SPECIFIER: "Your_AdHoc_Profile_Name" # 填入您的 Ad-Hoc 描述文件名
+          CODE_SIGNING_REQUIRED: YES
+          CODE_SIGNING_ALLOWED: YES

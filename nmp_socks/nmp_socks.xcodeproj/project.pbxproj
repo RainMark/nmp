@@ -1,0 +1,318 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		6A9C0E52F01B4A19C2B41B1F /* NmpMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A9C0E51F01B4A19C2B41B1F /* NmpMetrics.swift */; };
+		07B02F7F66497BE59F794731 /* NmpWebSocketPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A7671B90A20E30E14F741B0 /* NmpWebSocketPool.swift */; };
+		1FCB7AB12CB1B9C78242FD95 /* NmpProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D0E5EA387900233CF543145 /* NmpProtocol.swift */; };
+		4C6949D5A6B39AE2A602BDAF /* NmpSocksApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D64749507285DDAE2B76D0B4 /* NmpSocksApp.swift */; };
+		5203C2E5427682510A0D2663 /* BackgroundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDCD2A90E1372480B7CC3A74 /* BackgroundManager.swift */; };
+		822C59169131398A7F24B408 /* SOCKS5Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5495C6004A5224279B7EF18 /* SOCKS5Server.swift */; };
+		8EE09D3FDE0ED92E4B99BA76 /* NmpSocksManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA86F0548ADBB6043F28317F /* NmpSocksManager.swift */; };
+		BC0272C0A877542091C5134B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E56149EAC441413358B05E /* ContentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		6A9C0E51F01B4A19C2B41B1F /* NmpMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NmpMetrics.swift; sourceTree = "<group>"; };
+		3A7671B90A20E30E14F741B0 /* NmpWebSocketPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NmpWebSocketPool.swift; sourceTree = "<group>"; };
+		82E56149EAC441413358B05E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8D0E5EA387900233CF543145 /* NmpProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NmpProtocol.swift; sourceTree = "<group>"; };
+		940ED68665248B2DB5D672DD /* nmp_socks.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = nmp_socks.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9E7939666AD80A985B346BFF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		AA86F0548ADBB6043F28317F /* NmpSocksManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NmpSocksManager.swift; sourceTree = "<group>"; };
+		BDCD2A90E1372480B7CC3A74 /* BackgroundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundManager.swift; sourceTree = "<group>"; };
+		D64749507285DDAE2B76D0B4 /* NmpSocksApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NmpSocksApp.swift; sourceTree = "<group>"; };
+		F5495C6004A5224279B7EF18 /* SOCKS5Server.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOCKS5Server.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		732005405E2C09F9EF62AA45 /* nmp_socks */ = {
+			isa = PBXGroup;
+			children = (
+				BDCD2A90E1372480B7CC3A74 /* BackgroundManager.swift */,
+				82E56149EAC441413358B05E /* ContentView.swift */,
+				9E7939666AD80A985B346BFF /* Info.plist */,
+				6A9C0E51F01B4A19C2B41B1F /* NmpMetrics.swift */,
+				8D0E5EA387900233CF543145 /* NmpProtocol.swift */,
+				D64749507285DDAE2B76D0B4 /* NmpSocksApp.swift */,
+				AA86F0548ADBB6043F28317F /* NmpSocksManager.swift */,
+				3A7671B90A20E30E14F741B0 /* NmpWebSocketPool.swift */,
+				F5495C6004A5224279B7EF18 /* SOCKS5Server.swift */,
+			);
+			path = nmp_socks;
+			sourceTree = "<group>";
+		};
+		7692FC41FD46BBC0B27F85D9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				940ED68665248B2DB5D672DD /* nmp_socks.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D41BB33FC2B562F5006679A5 = {
+			isa = PBXGroup;
+			children = (
+				732005405E2C09F9EF62AA45 /* nmp_socks */,
+				7692FC41FD46BBC0B27F85D9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		24B446BE5B4D340060805E6E /* nmp_socks */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 29F9DE3979664918654858D9 /* Build configuration list for PBXNativeTarget "nmp_socks" */;
+			buildPhases = (
+				5EE252CDCEE6AE6AED7FD6B0 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = nmp_socks;
+			packageProductDependencies = (
+			);
+			productName = nmp_socks;
+			productReference = 940ED68665248B2DB5D672DD /* nmp_socks.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B96D796A67B8DE955640DB6B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					24B446BE5B4D340060805E6E = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 64840034E316530BBC94D9D4 /* Build configuration list for PBXProject "nmp_socks" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D41BB33FC2B562F5006679A5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				24B446BE5B4D340060805E6E /* nmp_socks */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5EE252CDCEE6AE6AED7FD6B0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5203C2E5427682510A0D2663 /* BackgroundManager.swift in Sources */,
+				BC0272C0A877542091C5134B /* ContentView.swift in Sources */,
+				6A9C0E52F01B4A19C2B41B1F /* NmpMetrics.swift in Sources */,
+				1FCB7AB12CB1B9C78242FD95 /* NmpProtocol.swift in Sources */,
+				4C6949D5A6B39AE2A602BDAF /* NmpSocksApp.swift in Sources */,
+				8EE09D3FDE0ED92E4B99BA76 /* NmpSocksManager.swift in Sources */,
+				07B02F7F66497BE59F794731 /* NmpWebSocketPool.swift in Sources */,
+				822C59169131398A7F24B408 /* SOCKS5Server.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0ED8E6F39E218D974C0B73F8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		79097E3D1AF17D2CA9F9DFD6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = nmp_socks/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.rainmark.nmp.socks;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E8D63A8A2678DE6BD721B286 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = nmp_socks/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.rainmark.nmp.socks;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EC5C8F60561940D010E8B9B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		29F9DE3979664918654858D9 /* Build configuration list for PBXNativeTarget "nmp_socks" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				79097E3D1AF17D2CA9F9DFD6 /* Debug */,
+				E8D63A8A2678DE6BD721B286 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		64840034E316530BBC94D9D4 /* Build configuration list for PBXProject "nmp_socks" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC5C8F60561940D010E8B9B1 /* Debug */,
+				0ED8E6F39E218D974C0B73F8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B96D796A67B8DE955640DB6B /* Project object */;
+}
