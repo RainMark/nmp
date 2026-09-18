@@ -1,0 +1,6 @@
+[client]
+endpoint = "wss://nmp.example.com"
+token = "replace-with-your-token"
+host = "127.0.0.1"
+port = 1234
+pre_connect = false

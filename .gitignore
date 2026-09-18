@@ -1,6 +1,10 @@
+.DS_Store
+.NMP_TOKEN
 .env/
+.pytest_cache/
+.venv/
 __pycache__/
-nmp.egg-info
-dist
-build
-nmp/__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/

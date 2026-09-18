@@ -11,6 +11,7 @@ from collections import deque
 from random import randint
 from nmp.log import get_logger
 from nmp.proto import NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
+from urllib.parse import quote, urlsplit, urlunsplit
 
 MAX_MSG_BUF_SIZE = 2 ** 16
 MAX_IDLE_CONNECTION = 8
@@ -51,13 +52,21 @@ class ConnectionPool:
     def new_ssl_context():
         context = ssl.create_default_context()
         context.options |= ssl.OP_NO_COMPRESSION
-        context.options |= ssl.OP_NO_TLSv1
-        context.options |= ssl.OP_NO_TLSv1_1
-        if ssl.HAS_TLSv1_3:
-            context.options |= ssl.OP_NO_TLSv1_2
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
         if hasattr(ssl, 'OP_ENABLE_MIDDLEBOX_COMPAT'):
             context.options |= ssl.OP_ENABLE_MIDDLEBOX_COMPAT
         return context
+
+    def connection_target(self):
+        endpoint = urlsplit(self.endpoint)
+        if endpoint.scheme not in ('ws', 'wss') or not endpoint.hostname:
+            raise ValueError('endpoint must be a ws:// or wss:// URL')
+
+        port = endpoint.port or (443 if endpoint.scheme == 'wss' else 80)
+        dummy = secrets.token_hex(randint(1, 4))
+        path = f'{endpoint.path.rstrip("/")}/{quote(self.token, safe="")}/{dummy}'
+        uri = urlunsplit((endpoint.scheme, endpoint.netloc, path, '', ''))
+        return uri, endpoint.hostname, port
 
     @staticmethod
     def in_blacklist(addr):
@@ -72,19 +81,14 @@ class ConnectionPool:
         return None, None
 
     async def new_connection(self, headers=None):
-        dummy = secrets.token_hex(randint(1, 4))
-        uri = f'{self.endpoint}/{self.token}/{dummy}'
-        ctx, hostname, port = None, None, 80
-        if self.endpoint.startswith('wss://'):
-            ctx, hostname, port = ConnectionPool.new_ssl_context(
-            ), self.endpoint.split('/')[2], 443
         try:
+            uri, hostname, port = self.connection_target()
+            ctx = ConnectionPool.new_ssl_context() if uri.startswith('wss://') else None
             host, port = await self.getaddr(hostname, port)
             kws = {
                 'host': host,
                 'port': port,
                 'ssl': ctx,
-                'server_hostname': hostname,
                 'extra_headers': headers,
                 'max_queue': WEBSOCKETS_MAX_QUEUE,
                 'compression': None,
@@ -93,6 +97,8 @@ class ConnectionPool:
                 'ping_interval': 30,
                 'ping_timeout': None,
             }
+            if ctx is not None:
+                kws['server_hostname'] = hostname
             # fall back
             if host is None or port is None:
                 kws.pop('host')

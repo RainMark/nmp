@@ -10,6 +10,7 @@ setup(
     description='Network Multistage Pxxxx/Net Manager Project',
     url='https://github.com/RainMark/nmp',
     classifiers=[
+        'Operating System :: Microsoft :: Windows',
         'Operating System :: Unix',
         'Operating System :: MacOS',
         'Operating System :: POSIX :: Linux',
@@ -18,16 +19,19 @@ setup(
     ],
 
     packages=find_packages(),
+    python_requires='>=3.8',
     include_package_data=True,
     zip_safe=True,
     install_requires = [
-        'websockets == 10.3',
+        'websockets >= 12.0, < 14.0',
         'coloredlogs == 15.0.1',
+        'tomli >= 2.0.1; python_version < "3.11"',
     ],
 
     entry_points={
         'console_scripts':[
-            'nmp = nmp.main:main'
+            'nmp = nmp.main:main',
+            'nmp-client = nmp.client:main',
         ]
     },
 )

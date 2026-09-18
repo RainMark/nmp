@@ -61,7 +61,7 @@ class SockHandler:
             port = struct.unpack('!H', dst[4:])[0]
         elif ATYP_DOMAINNAME == atyp:
             length = await self.sock.recv_exactly(1)
-            addr = await self.sock.recv_exactly(ord(length))
+            addr = await self.sock.recv_exactly(length[0])
             port = struct.unpack('!H', await self.sock.recv_exactly(2))[0]
         else:
             return None

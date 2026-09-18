@@ -52,3 +52,44 @@ $ nmp --server sockv5 --endpoint wss://nmp.example.io --port 1234 --token f353f0
 ```bash
 all_proxy='socks5h://127.0.0.1:1234' curl https://www.google.com
 ```
+
+### Windows x64 Client
+
+The Windows client exposes a local SOCKS5 proxy and keeps routing and system
+proxy integration outside NMP. It can be used directly by a browser or as a
+local SOCKS5 outbound in Mihomo / Clash Verge Rev.
+
+Copy `nmp-client.example.toml` to `%APPDATA%\NMP\client.toml` and update the
+endpoint and token:
+
+```toml
+[client]
+endpoint = "wss://nmp.example.com"
+token = "replace-with-your-token"
+host = "127.0.0.1"
+port = 1234
+pre_connect = false
+```
+
+Run the packaged executable without arguments to use that default config:
+
+```powershell
+.\nmp-client.exe
+```
+
+Command-line options override the TOML file:
+
+```powershell
+.\nmp-client.exe --config .\client.toml --port 1080
+```
+
+Development builds are produced by the `Windows x64` GitHub Actions workflow.
+Each successful run uploads `nmp-client-windows-x64` containing the executable
+and example configuration.
+
+Run the source tests locally with:
+
+```bash
+python -m pip install -e . pytest
+python -m pytest -q
+```
