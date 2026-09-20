@@ -74,6 +74,11 @@ class ClientConfig:
             f'port = {self.port}\n'
             f'pre_connect = {str(self.pre_connect).lower()}\n'
         )
-        temporary_path.write_text(contents, encoding='utf-8')
+        descriptor = os.open(
+            temporary_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        if os.name != 'nt':
+            os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, 'w', encoding='utf-8') as config_file:
+            config_file.write(contents)
         os.replace(temporary_path, config_path)
         return config_path

@@ -1,3 +1,5 @@
+import os
+import stat
 from pathlib import Path
 
 import pytest
@@ -56,3 +58,5 @@ def test_save_and_reload_client_config(tmp_path):
     assert saved_path == config_path
     assert loaded == config
     assert not config_path.with_name('client.toml.tmp').exists()
+    if os.name != 'nt':
+        assert stat.S_IMODE(config_path.stat().st_mode) == 0o600

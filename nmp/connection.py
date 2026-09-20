@@ -6,6 +6,7 @@ import socket
 import ssl
 import struct
 import time
+import certifi
 import websockets
 from collections import deque
 from contextlib import suppress
@@ -54,7 +55,7 @@ class ConnectionPool:
 
     @staticmethod
     def new_ssl_context():
-        context = ssl.create_default_context()
+        context = ssl.create_default_context(cafile=certifi.where())
         context.options |= ssl.OP_NO_COMPRESSION
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         if hasattr(ssl, 'OP_ENABLE_MIDDLEBOX_COMPAT'):
