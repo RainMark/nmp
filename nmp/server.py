@@ -19,7 +19,15 @@ MAX_BACKLOG = 2 ** 10
 
 def create_reuseport_stream_socket(host, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    # SO_REUSEPORT isn't available on Windows.  SO_EXCLUSIVEADDRUSE also
+    # avoids another process taking over the local proxy port while it is in
+    # use, which is the safer Windows equivalent for our single listener.
+    if os.name == 'nt' and hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+    elif hasattr(socket, 'SO_REUSEPORT'):
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    else:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     sock.bind((host, port))
     sock.listen(MAX_BACKLOG)
