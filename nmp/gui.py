@@ -7,13 +7,13 @@ import sys
 import tempfile
 import time
 import tkinter as tk
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from tkinter import messagebox, scrolledtext, ttk
 
 from nmp.client import ClientConfig, default_config_path
 from nmp.client_controller import ClientController, ClientState
-from nmp.log import (add_log_handler, configure_file_logging, get_logger,
-                     remove_file_logging, remove_log_handler)
+from nmp.log import TokenFilter, fmt, get_logger
 
 
 logger = get_logger(__name__)
@@ -22,6 +22,8 @@ logger = get_logger(__name__)
 def default_log_path():
     if os.name == 'nt' and os.environ.get('LOCALAPPDATA'):
         return Path(os.environ['LOCALAPPDATA']) / 'NMP' / 'logs' / 'nmp-client.log'
+    if sys.platform == 'darwin':
+        return Path.home() / 'Library' / 'Logs' / 'NMP' / 'nmp-client.log'
     return default_config_path().parent / 'logs' / 'nmp-client.log'
 
 
@@ -59,12 +61,20 @@ class NmpClientApp:
                          else default_log_path())
         self.controller = controller or ClientController()
         self.log_queue = queue.SimpleQueue()
+        self.token_filter = TokenFilter()
         self.log_handler = QueueLogHandler(self.log_queue)
         self.log_handler.setFormatter(logging.Formatter(
             '%(asctime)s [%(levelname)s] %(message)s',
             datefmt='%H:%M:%S'))
-        self.file_handler = configure_file_logging(self.log_path)
-        add_log_handler(self.log_handler)
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self.file_handler = RotatingFileHandler(
+            self.log_path, maxBytes=2 * 1024 * 1024,
+            backupCount=3, encoding='utf-8')
+        self.file_handler.setFormatter(logging.Formatter(fmt))
+        for handler in (self.log_handler, self.file_handler):
+            handler.addFilter(self.token_filter)
+            logging.getLogger().addHandler(handler)
+        logging.getLogger().setLevel(logging.INFO)
         self._quitting = False
         self._quit_deadline = None
 
@@ -184,6 +194,7 @@ class NmpClientApp:
             config = ClientConfig.from_toml(self.config_path)
             self.endpoint_var.set(config.endpoint)
             self.token_var.set(config.token)
+            self.token_filter.set_token(config.token)
             self.port_var.set(str(config.port))
             self.pre_connect_var.set(config.pre_connect)
             self._update_proxy_address()
@@ -199,7 +210,6 @@ class NmpClientApp:
         config = ClientConfig(
             endpoint=self.endpoint_var.get().strip(),
             token=self.token_var.get(),
-            host='127.0.0.1',
             port=port,
             pre_connect=bool(self.pre_connect_var.get()))
         config.validate()
@@ -208,6 +218,7 @@ class NmpClientApp:
     def save_config(self):
         try:
             config = self._config_from_form()
+            self.token_filter.set_token(config.token)
             config.save(self.config_path)
             self._update_proxy_address()
             logger.info(f'saved config to {self.config_path}')
@@ -264,8 +275,9 @@ class NmpClientApp:
     def _finish_quit_when_stopped(self):
         if (self.controller.shutdown(wait=False) or
                 time.monotonic() >= self._quit_deadline):
-            remove_log_handler(self.log_handler)
-            remove_file_logging(self.file_handler)
+            for handler in (self.log_handler, self.file_handler):
+                logging.getLogger().removeHandler(handler)
+                handler.close()
             self.root.destroy()
             return
         self.root.after(self.POLL_INTERVAL_MS, self._finish_quit_when_stopped)

@@ -1,11 +1,10 @@
 import asyncio
-import logging
 import queue
 import threading
 from dataclasses import dataclass
 from enum import Enum
 
-from nmp.log import get_logger, register_sensitive_value
+from nmp.log import get_logger
 from nmp.sockv5 import SockV5Server
 
 
@@ -32,28 +31,15 @@ class ClientController:
         self._state = ClientState.STOPPED
         self._lock = threading.RLock()
         self._events = queue.SimpleQueue()
-        self._subscribers = []
         self._thread = None
         self._loop = None
         self._stop_event = None
         self._stop_requested = False
-        self._server = None
 
     @property
     def state(self):
         with self._lock:
             return self._state
-
-    def subscribe(self, callback):
-        with self._lock:
-            self._subscribers.append(callback)
-
-        def unsubscribe():
-            with self._lock:
-                if callback in self._subscribers:
-                    self._subscribers.remove(callback)
-
-        return unsubscribe
 
     def drain_events(self):
         events = []
@@ -65,7 +51,6 @@ class ClientController:
 
     def start(self, config):
         config.validate()
-        register_sensitive_value(config.token)
         with self._lock:
             if self._state not in (ClientState.STOPPED, ClientState.ERROR):
                 raise RuntimeError(f'cannot start while client is {self._state.value}')
@@ -123,7 +108,6 @@ class ClientController:
             with self._lock:
                 self._loop = None
                 self._stop_event = None
-                self._server = None
             if not failed:
                 self._set_state(ClientState.STOPPED, 'SOCKS5 代理已停止')
 
@@ -132,7 +116,6 @@ class ClientController:
         server = self._server_factory(config)
         with self._lock:
             self._stop_event = stop_event
-            self._server = server
             stop_requested = self._stop_requested
         try:
             await server.start()
@@ -159,12 +142,4 @@ class ClientController:
 
     def _set_state_locked(self, state, message):
         self._state = state
-        event = ClientEvent(state, message)
-        self._events.put(event)
-        subscribers = tuple(self._subscribers)
-        for callback in subscribers:
-            try:
-                callback(event)
-            except Exception:
-                logging.getLogger(__name__).exception(
-                    'client state subscriber failed')
+        self._events.put(ClientEvent(state, message))

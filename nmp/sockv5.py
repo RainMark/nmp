@@ -6,9 +6,9 @@ import socket
 import struct
 from contextlib import suppress
 from nmp.connection import ConnectionPool
+from nmp.listener import create_stream_socket
 from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
-from nmp.server import create_reuseport_stream_socket
 from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METHODS, \
     NMP_FASTPATH_HOST, NMP_FASTPATH_MAX_BYTES, NMP_FASTPATH_PAYLOAD, NMP_FASTPATH_PORT, NMP_TCP_PIPE_WITH_DATA, RSV, SOCK_V5
 
@@ -133,7 +133,7 @@ class SockV5Server:
             raise RuntimeError('SOCKS5 server is already running')
         self.server = await asyncio.start_server(
             self._client_connected,
-            sock=create_reuseport_stream_socket(
+            sock=create_stream_socket(
                 self.config.host, self.config.port))
 
     def _client_connected(self, reader, writer):

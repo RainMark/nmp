@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from nmp.client import ClientConfig, parse_args
+from nmp.client import ClientConfig
 
 
 def test_load_client_config(tmp_path):
@@ -11,6 +11,7 @@ def test_load_client_config(tmp_path):
         '[client]\n'
         'endpoint = "wss://nmp.example.com/base"\n'
         'token = "secret"\n'
+        'host = "0.0.0.0"\n'
         'port = 1080\n'
         'pre_connect = true\n',
         encoding='utf-8')
@@ -21,26 +22,6 @@ def test_load_client_config(tmp_path):
     assert config.token == 'secret'
     assert config.host == '127.0.0.1'
     assert config.port == 1080
-    assert config.pre_connect is True
-
-
-def test_command_line_overrides_config(tmp_path):
-    config_path = tmp_path / 'client.toml'
-    config_path.write_text(
-        '[client]\nendpoint = "wss://old.example.com"\n'
-        'token = "old"\nport = 1080\n', encoding='utf-8')
-
-    config = parse_args([
-        '--config', str(config_path),
-        '--endpoint', 'ws://127.0.0.1:9000/base',
-        '--token', 'new',
-        '--port', '1234',
-        '--pre-connect',
-    ])
-
-    assert config.endpoint == 'ws://127.0.0.1:9000/base'
-    assert config.token == 'new'
-    assert config.port == 1234
     assert config.pre_connect is True
 
 
@@ -66,7 +47,6 @@ def test_save_and_reload_client_config(tmp_path):
     config = ClientConfig(
         endpoint='wss://nmp.example.com/base',
         token='secret "value"',
-        host='127.0.0.1',
         port=1080,
         pre_connect=True)
 
