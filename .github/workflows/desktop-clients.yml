@@ -38,8 +38,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
+          python -m pip install -e ".[desktop]"
           python -m pip install pytest pyinstaller
+
+      - name: Install Windows GUI automation
+        if: runner.os == 'Windows'
+        run: python -m pip install pywinauto==0.6.9
 
       - name: Run source tests
         run: python -m pytest -q
@@ -47,15 +51,23 @@ jobs:
       - name: Build desktop app
         run: pyinstaller --clean --noconfirm nmp-gui.spec
 
-      - name: Check packaged Windows app
+      - name: Test packaged Windows GUI
         if: runner.os == 'Windows'
-        run: .\dist\NMP.exe --self-test
+        run: python .github/scripts/windows_gui_automation.py dist/NMP.exe
 
       - name: Check packaged macOS app
         if: runner.os == 'macOS'
         run: |
-          "dist/NMP.app/Contents/MacOS/NMP" --self-test
+          python .github/scripts/macos_gui_smoke.py "dist/NMP.app/Contents/MacOS/NMP"
           codesign --verify --deep --strict "dist/NMP.app"
+
+      - name: Upload Windows GUI test diagnostics
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-gui-test-diagnostics
+          path: artifacts/windows-gui
+          if-no-files-found: error
 
       - name: Package macOS app
         if: runner.os == 'macOS'
