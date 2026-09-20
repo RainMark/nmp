@@ -73,6 +73,16 @@ The current builds are not commercially signed. Windows SmartScreen or macOS
 Gatekeeper may therefore display a warning. Only continue when the file was
 downloaded from the official NMP Releases page above.
 
+If macOS reports that `NMP.app` cannot be checked or opened, first make sure it
+has been moved to the Applications folder. Then remove the download quarantine
+attribute in Terminal and open the app again:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/NMP.app
+```
+
+Only run this command for `NMP.app` downloaded from the official Releases page.
+
 #### Configure and use
 
 1. Enter the NMP server WebSocket address, for example
