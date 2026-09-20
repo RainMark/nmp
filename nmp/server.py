@@ -4,35 +4,14 @@ import asyncio
 import base64
 import os
 import secrets
-import socket
 import struct
 import websockets
 from random import randint
+from nmp.listener import create_stream_socket
 from nmp.log import get_logger
 from nmp.pipe import DatagramPipe, SocketStream, Pipe
 from nmp.proto import NMP_CONNECT_FAILED, NMP_CONNECT_OK, NMP_FASTPATH_HOST, NMP_FASTPATH_PAYLOAD, \
     NMP_FASTPATH_PORT, NMP_TCP_PIPE_DOMAIN, NMP_TCP_PIPE_IP, NMP_UDP_PIPE_IP, NMP_TCP_PIPE_WITH_DATA, WEBSOCKETS_MAX_QUEUE
-
-
-MAX_BACKLOG = 2 ** 10
-
-
-def create_reuseport_stream_socket(host, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # SO_REUSEPORT isn't available on Windows.  SO_EXCLUSIVEADDRUSE also
-    # avoids another process taking over the local proxy port while it is in
-    # use, which is the safer Windows equivalent for our single listener.
-    if os.name == 'nt' and hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
-    elif hasattr(socket, 'SO_REUSEPORT'):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    else:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    sock.bind((host, port))
-    sock.listen(MAX_BACKLOG)
-    sock.setblocking(False)
-    return sock
 
 
 class WebSockHandler:
@@ -141,7 +120,7 @@ class NmpServer:
         self.load_token()
         self.logger.info(f'### Token: {self.token} ###')
         async with websockets.serve(
-            self.dispatch, sock=create_reuseport_stream_socket(
+            self.dispatch, sock=create_stream_socket(
                 self.config.host, self.config.port),
                 max_queue=WEBSOCKETS_MAX_QUEUE,
                 ping_interval=None, ping_timeout=None,

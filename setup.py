@@ -23,6 +23,7 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires = [
+        'certifi >= 2024.7.4',
         'websockets >= 12.0, < 14.0',
         'coloredlogs == 15.0.1',
         'tomli >= 2.0.1; python_version < "3.11"',
@@ -31,7 +32,6 @@ setup(
     entry_points={
         'console_scripts':[
             'nmp = nmp.main:main',
-            'nmp-client = nmp.client:main',
         ]
     },
 )

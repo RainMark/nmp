@@ -2,11 +2,12 @@
 
 import asyncio
 import argparse
+import functools
 import os
+import signal
 import sys
 from pathlib import Path
 from nmp.log import get_logger
-from nmp.runtime import add_stop_signal
 from nmp.server import NmpServer
 from nmp.sockv5 import SockV5Server
 from nmp.transparent import TransparentServer
@@ -68,6 +69,19 @@ class Config:
         return True
 
 
+def add_stop_signal():
+    def shutdown(name, loop):
+        logger.info(f'stop for signal: {name}')
+        logger.info(f'cancel {len(asyncio.all_tasks())} tasks')
+        loop.stop()
+
+    loop = asyncio.get_running_loop()
+    for name in ('SIGINT', 'SIGTERM'):
+        loop.add_signal_handler(
+            getattr(signal, name),
+            functools.partial(shutdown, name, loop))
+
+
 async def start_nmp_server(config):
     logger.info(f'start nmp server: ({config.host}:{config.port})')
     add_stop_signal()
@@ -104,8 +118,6 @@ def main():
             asyncio.run(start_transparent_server(config))
         else:
             asyncio.run(start_nmp_server(config))
-    except (KeyboardInterrupt, asyncio.CancelledError):
-        logger.info('stopped')
     except Exception as e:
         logger.exception(e)
     finally:

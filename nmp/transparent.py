@@ -31,10 +31,10 @@ import asyncio
 import socket
 import struct
 from nmp.connection import ConnectionPool
+from nmp.listener import MAX_BACKLOG
 from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
 from nmp.proto import NMP_CONNECT_OK, NMP_TCP_PIPE_IP
-from nmp.server import MAX_BACKLOG
 
 MAX_MSG_BUF_SIZE = 2 ** 16
 MAX_IDLE_CONNECTION = 2 ** 10

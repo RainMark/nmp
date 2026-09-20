@@ -6,8 +6,10 @@ import socket
 import ssl
 import struct
 import time
+import certifi
 import websockets
 from collections import deque
+from contextlib import suppress
 from random import randint
 from nmp.log import get_logger
 from nmp.proto import NMP_UDP_PIPE_IP, WEBSOCKETS_MAX_QUEUE
@@ -32,8 +34,11 @@ class ConnectionPool:
         self.pre_connected_queue = deque(maxlen=MAX_PRE_CONNECTED_CONNECTION)
         self.last_active = time.time()
         self.loop = asyncio.get_event_loop()
+        self.closed = False
+        self.pre_connect_task = None
         if self.pre_connect:
-            self.loop.create_task(self.__pre_connect_loop_task())
+            self.pre_connect_task = self.loop.create_task(
+                self.__pre_connect_loop_task())
 
     async def open_connection(self):
         if len(self.queue) > 0:
@@ -50,7 +55,7 @@ class ConnectionPool:
 
     @staticmethod
     def new_ssl_context():
-        context = ssl.create_default_context()
+        context = ssl.create_default_context(cafile=certifi.where())
         context.options |= ssl.OP_NO_COMPRESSION
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         if hasattr(ssl, 'OP_ENABLE_MIDDLEBOX_COMPAT'):
@@ -81,6 +86,8 @@ class ConnectionPool:
         return None, None
 
     async def new_connection(self, headers=None):
+        if self.closed:
+            return None
         try:
             uri, hostname, port = self.connection_target()
             ctx = ConnectionPool.new_ssl_context() if uri.startswith('wss://') else None
@@ -123,7 +130,8 @@ class ConnectionPool:
 
     async def __pre_connect(self):
         self.logger.debug('connect!')
-        while len(self.pre_connected_queue) < MAX_PRE_CONNECTED_CONNECTION:
+        while (not self.closed and
+               len(self.pre_connected_queue) < MAX_PRE_CONNECTED_CONNECTION):
             self.pre_connected_queue.append(await self.new_connection())
 
     async def __close_pre_connect(self):
@@ -136,7 +144,7 @@ class ConnectionPool:
                     self.logger.info(str(e))
 
     async def __pre_connect_loop_task(self):
-        while True:
+        while not self.closed:
             if time.time() - self.last_active > MAX_INACTIVE_TIME:
                 if len(self.pre_connected_queue) > 0:
                     self.logger.info('close!')
@@ -144,3 +152,23 @@ class ConnectionPool:
             else:
                 await self.__pre_connect()
             await asyncio.sleep(PRE_CONNECTED_TASK_SLEEP)
+
+    async def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        if self.pre_connect_task is not None:
+            self.pre_connect_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self.pre_connect_task
+            self.pre_connect_task = None
+
+        connections = []
+        while self.queue:
+            connections.append(self.queue.popleft())
+        while self.pre_connected_queue:
+            connections.append(self.pre_connected_queue.popleft())
+        for connection in connections:
+            if connection is not None:
+                with suppress(Exception):
+                    await connection.close()

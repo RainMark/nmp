@@ -53,39 +53,33 @@ $ nmp --server sockv5 --endpoint wss://nmp.example.io --port 1234 --token f353f0
 all_proxy='socks5h://127.0.0.1:1234' curl https://www.google.com
 ```
 
-### Windows x64 Client
+### Desktop Client
 
-The Windows client exposes a local SOCKS5 proxy and keeps routing and system
-proxy integration outside NMP. It can be used directly by a browser or as a
-local SOCKS5 outbound in Mihomo / Clash Verge Rev.
+The desktop client exposes a local SOCKS5 proxy on `127.0.0.1`. It can be used
+directly by a browser or as a local SOCKS5 outbound in Mihomo / Clash Verge
+Rev. System proxy and routing rules remain outside NMP.
 
-Copy `nmp-client.example.toml` to `%APPDATA%\NMP\client.toml` and update the
-endpoint and token:
+The same Tkinter GUI is packaged for Windows x64 and macOS arm64. It edits and
+saves the endpoint, token and local port, starts or stops the proxy, copies its
+address, and displays live and rotating file logs.
 
-```toml
-[client]
-endpoint = "wss://nmp.example.com"
-token = "replace-with-your-token"
-host = "127.0.0.1"
-port = 1234
-pre_connect = false
-```
+Download the matching artifact from the `Desktop clients` GitHub Actions
+workflow:
 
-Run the packaged executable without arguments to use that default config:
+- `NMP-windows-x64` contains `NMP.exe`.
+- `NMP-macos-arm64` contains `NMP-macos-arm64.zip`; unzip it and move
+  `NMP.app` to Applications.
 
-```powershell
-.\nmp-client.exe
-```
+Configuration and logs are stored in the platform user directories:
 
-Command-line options override the TOML file:
+- Windows: `%APPDATA%\NMP\client.toml` and
+  `%LOCALAPPDATA%\NMP\logs\nmp-client.log`.
+- macOS: `~/Library/Application Support/NMP/client.toml` and
+  `~/Library/Logs/NMP/nmp-client.log`.
 
-```powershell
-.\nmp-client.exe --config .\client.toml --port 1080
-```
-
-Development builds are produced by the `Windows x64` GitHub Actions workflow.
-Each successful run uploads `nmp-client-windows-x64` containing the executable
-and example configuration.
+CI builds are unsigned development artifacts. Distribution without Windows
+SmartScreen or macOS Gatekeeper warnings requires platform code signing; macOS
+distribution also requires Apple notarization.
 
 Run the source tests locally with:
 

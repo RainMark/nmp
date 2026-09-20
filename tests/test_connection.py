@@ -1,6 +1,15 @@
 import asyncio
+from unittest.mock import patch
 
 from nmp.connection import ConnectionPool
+
+
+def test_ssl_context_uses_certifi_ca_bundle():
+    with patch('nmp.connection.certifi.where', return_value='/ca.pem'):
+        with patch('nmp.connection.ssl.create_default_context') as create:
+            ConnectionPool.new_ssl_context()
+
+    create.assert_called_once_with(cafile='/ca.pem')
 
 
 def test_connection_target_preserves_endpoint_path_and_port():
