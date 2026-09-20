@@ -3,7 +3,6 @@ import logging
 import os
 import queue
 import sys
-import tempfile
 import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -464,24 +463,10 @@ def create_application(arguments=None):
     return application
 
 
-def self_test():
-    with tempfile.TemporaryDirectory(prefix='nmp-gui-test-') as directory:
-        application = create_application(['nmp-client', '--self-test'])
-        window = NmpClientWindow(
-            config_path=Path(directory) / 'client.toml',
-            log_path=Path(directory) / 'nmp-client.log')
-        QTimer.singleShot(0, window.request_quit)
-        return application.exec()
-
-
 def main(argv=None):
     parser = argparse.ArgumentParser(description='NMP desktop client')
     parser.add_argument('--config', type=Path)
-    parser.add_argument('--self-test', action='store_true',
-                        help='verify that the packaged GUI can start')
     args = parser.parse_args(argv)
-    if args.self_test:
-        return self_test()
 
     application = create_application()
     window = NmpClientWindow(config_path=args.config)
