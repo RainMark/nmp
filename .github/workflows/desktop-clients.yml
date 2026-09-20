@@ -53,12 +53,12 @@ jobs:
 
       - name: Test packaged Windows GUI
         if: runner.os == 'Windows'
-        run: python ci/windows_gui_automation.py dist/NMP.exe
+        run: python .github/scripts/windows_gui_automation.py dist/NMP.exe
 
       - name: Check packaged macOS app
         if: runner.os == 'macOS'
         run: |
-          python ci/macos_gui_smoke.py "dist/NMP.app/Contents/MacOS/NMP"
+          python .github/scripts/macos_gui_smoke.py "dist/NMP.app/Contents/MacOS/NMP"
           codesign --verify --deep --strict "dist/NMP.app"
 
       - name: Upload Windows GUI test diagnostics
