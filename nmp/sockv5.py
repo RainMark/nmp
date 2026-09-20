@@ -4,6 +4,7 @@ import asyncio
 import base64
 import socket
 import struct
+from contextlib import suppress
 from nmp.connection import ConnectionPool
 from nmp.log import get_logger
 from nmp.pipe import Pipe, SocketStream
@@ -18,6 +19,7 @@ class SockHandler:
         self.sock = sock
         self.connection_pool = pool
         self.pipeing = False
+        self.wsock = None
 
     async def handle(self):
         r = await self.parse_ver_and_reply()
@@ -30,8 +32,17 @@ class SockHandler:
             await self.sock.close()
             return
 
+        self.wsock = wsock
         pipe = Pipe(self.sock, wsock)
         await pipe.pipe()
+
+    async def close(self):
+        if not self.sock.closed:
+            with suppress(Exception):
+                await self.sock.close()
+        if self.wsock is not None and not self.wsock.closed:
+            with suppress(Exception):
+                await self.wsock.close()
 
     async def parse_ver_and_reply(self):
         hdr = await self.sock.recv_exactly(2)
@@ -104,20 +115,80 @@ class SockV5Server:
     def __init__(self, config):
         self.logger = get_logger(__name__)
         self.config = config
+        self.server = None
+        self.client_tasks = set()
+        self.client_writers = set()
         self.connection_pool = ConnectionPool(
             config.endpoint, config.token, pre_connect=config.pre_connect)
 
     async def start_server(self):
-        server = await asyncio.start_server(self.dispatch,
-                                            sock=create_reuseport_stream_socket(self.config.host, self.config.port))
-        async with server:
-            await server.serve_forever()
+        await self.start()
+        try:
+            await self.server.serve_forever()
+        finally:
+            await self.stop()
+
+    async def start(self):
+        if self.server is not None:
+            raise RuntimeError('SOCKS5 server is already running')
+        self.server = await asyncio.start_server(
+            self._client_connected,
+            sock=create_reuseport_stream_socket(
+                self.config.host, self.config.port))
+
+    def _client_connected(self, reader, writer):
+        task = asyncio.create_task(self.dispatch(reader, writer))
+        self.client_tasks.add(task)
+        self.client_writers.add(writer)
+
+        def connection_done(completed_task):
+            self.client_tasks.discard(completed_task)
+            self.client_writers.discard(writer)
+
+        task.add_done_callback(connection_done)
+
+    async def stop(self):
+        server = self.server
+        if server is not None:
+            server.close()
+            # Python 3.13 waits for accepted clients in wait_closed().  This
+            # also closes connections accepted immediately before stop(),
+            # before their callback has had a chance to register a task.
+            if hasattr(server, 'close_clients'):
+                server.close_clients()
+
+        writers = tuple(self.client_writers)
+        for writer in writers:
+            writer.close()
+        current = asyncio.current_task()
+        tasks = [task for task in self.client_tasks
+                 if task is not current and not task.done()]
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        if writers:
+            await asyncio.gather(
+                *(writer.wait_closed() for writer in writers),
+                return_exceptions=True)
+        if server is not None:
+            await server.wait_closed()
+            self.server = None
+        await self.connection_pool.close()
 
     async def dispatch(self, r, w):
+        task = asyncio.current_task()
+        if task is not None:
+            self.client_tasks.add(task)
         handler = SockHandler(SocketStream(r, w), self.connection_pool)
         try:
             await handler.handle()
+        except asyncio.CancelledError:
+            await handler.close()
+            raise
         except Exception as e:
             self.logger.exception(e)
-            if not handler.sock.closed:
-                await handler.sock.close()
+            await handler.close()
+        finally:
+            if task is not None:
+                self.client_tasks.discard(task)

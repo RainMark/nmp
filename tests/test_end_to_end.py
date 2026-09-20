@@ -1,8 +1,10 @@
 import asyncio
 from types import SimpleNamespace
 
+from nmp.client import ClientConfig
 from nmp.sockv5 import SockV5Server
-from tests.helpers import echo_handler, socks5_connect, start_nmp_server
+from tests.helpers import (echo_handler, socks5_connect, start_nmp_server,
+                           unused_tcp_port)
 
 
 def test_socks5_to_nmp_tcp_round_trip():
@@ -38,5 +40,28 @@ def test_socks5_to_nmp_tcp_round_trip():
             await nmp_server.wait_closed()
             echo_server.close()
             await echo_server.wait_closed()
+
+    asyncio.run(run())
+
+
+def test_socks5_server_can_stop_cleanly():
+    async def run():
+        port = unused_tcp_port()
+        config = ClientConfig(
+            endpoint='ws://127.0.0.1:1',
+            token='test-token',
+            port=port)
+        server = SockV5Server(config)
+
+        await server.start()
+        reader, writer = await asyncio.open_connection('127.0.0.1', port)
+        await asyncio.sleep(0)
+        await asyncio.wait_for(server.stop(), timeout=2)
+
+        assert server.server is None
+        assert server.connection_pool.closed
+        assert await asyncio.wait_for(reader.read(1), timeout=2) == b''
+        writer.close()
+        await asyncio.wait_for(writer.wait_closed(), timeout=2)
 
     asyncio.run(run())

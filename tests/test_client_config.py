@@ -59,3 +59,20 @@ def test_reject_unknown_config_option(tmp_path):
 
     with pytest.raises(ValueError, match='unsupported client options'):
         ClientConfig.from_toml(config_path)
+
+
+def test_save_and_reload_client_config(tmp_path):
+    config_path = tmp_path / 'nested' / 'client.toml'
+    config = ClientConfig(
+        endpoint='wss://nmp.example.com/base',
+        token='secret "value"',
+        host='127.0.0.1',
+        port=1080,
+        pre_connect=True)
+
+    saved_path = config.save(config_path)
+    loaded = ClientConfig.from_toml(config_path)
+
+    assert saved_path == config_path
+    assert loaded == config
+    assert not config_path.with_name('client.toml.tmp').exists()

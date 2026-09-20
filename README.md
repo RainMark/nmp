@@ -71,7 +71,20 @@ port = 1234
 pre_connect = false
 ```
 
-Run the packaged executable without arguments to use that default config:
+For the graphical client, run:
+
+```powershell
+.\nmp-client-gui.exe
+```
+
+The GUI can edit and save the connection settings, start or stop the local
+SOCKS5 proxy, copy its address, and display both live and rotating file logs.
+The local listener is fixed to `127.0.0.1`. Configuration is stored in
+`%APPDATA%\NMP\client.toml`, while logs are stored in
+`%LOCALAPPDATA%\NMP\logs\nmp-client.log`.
+
+Run the command-line executable without arguments to use the same default
+config:
 
 ```powershell
 .\nmp-client.exe
@@ -84,8 +97,8 @@ Command-line options override the TOML file:
 ```
 
 Development builds are produced by the `Windows x64` GitHub Actions workflow.
-Each successful run uploads `nmp-client-windows-x64` containing the executable
-and example configuration.
+Each successful run uploads `nmp-client-windows-x64` containing the GUI and
+command-line executables plus the example configuration.
 
 Run the source tests locally with:
 

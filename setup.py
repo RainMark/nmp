@@ -32,6 +32,7 @@ setup(
         'console_scripts':[
             'nmp = nmp.main:main',
             'nmp-client = nmp.client:main',
+            'nmp-client-gui = nmp.gui:main',
         ]
     },
 )

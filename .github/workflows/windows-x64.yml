@@ -35,11 +35,16 @@ jobs:
       - name: Run source tests
         run: python -m pytest -q
 
-      - name: Build Windows executable
-        run: pyinstaller --clean --noconfirm nmp-client.spec
+      - name: Build Windows executables
+        run: |
+          pyinstaller --clean --noconfirm nmp-client.spec
+          pyinstaller --clean --noconfirm nmp-client-gui.spec
 
       - name: Check command-line entry point
         run: .\dist\nmp-client.exe --help
+
+      - name: Check packaged GUI entry point
+        run: .\dist\nmp-client-gui.exe --self-test
 
       - name: Test packaged executable end to end
         env:
@@ -55,5 +60,6 @@ jobs:
           name: nmp-client-windows-x64
           path: |
             dist/nmp-client.exe
+            dist/nmp-client-gui.exe
             dist/nmp-client.example.toml
           if-no-files-found: error

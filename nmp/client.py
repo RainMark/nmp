@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import importlib
+import json
 import os
 import sys
 from dataclasses import dataclass
@@ -67,6 +68,23 @@ class ClientConfig:
             raise ValueError('host is required')
         if not isinstance(self.pre_connect, bool):
             raise ValueError('pre_connect must be true or false')
+
+    def save(self, path=None):
+        self.validate()
+        config_path = Path(path) if path is not None else default_config_path()
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = config_path.with_name(f'{config_path.name}.tmp')
+        contents = (
+            '[client]\n'
+            f'endpoint = {json.dumps(self.endpoint, ensure_ascii=False)}\n'
+            f'token = {json.dumps(self.token, ensure_ascii=False)}\n'
+            f'host = {json.dumps(self.host, ensure_ascii=False)}\n'
+            f'port = {self.port}\n'
+            f'pre_connect = {str(self.pre_connect).lower()}\n'
+        )
+        temporary_path.write_text(contents, encoding='utf-8')
+        os.replace(temporary_path, config_path)
+        return config_path
 
 
 def parse_args(argv=None):
