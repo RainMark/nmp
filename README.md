@@ -55,20 +55,38 @@ all_proxy='socks5h://127.0.0.1:1234' curl https://www.google.com
 
 ### Desktop Client
 
-The desktop client exposes a local SOCKS5 proxy on `127.0.0.1`. It can be used
-directly by a browser or as a local SOCKS5 outbound in Mihomo / Clash Verge
-Rev. System proxy and routing rules remain outside NMP.
+NMP Desktop Client provides a local SOCKS5 proxy with a graphical interface.
+It supports Windows x64 and Apple Silicon macOS (arm64).
 
-The same Tkinter GUI is packaged for Windows x64 and macOS arm64. It edits and
-saves the endpoint, token and local port, starts or stops the proxy, copies its
-address, and displays live and rotating file logs.
+#### Download and install
 
-Download the matching artifact from the `Desktop clients` GitHub Actions
-workflow:
+Download the newest version from the
+[GitHub Releases page](https://github.com/RainMark/nmp/releases/latest):
 
-- `NMP-windows-x64` contains `NMP.exe`.
-- `NMP-macos-arm64` contains `NMP-macos-arm64.zip`; unzip it and move
-  `NMP.app` to Applications.
+- **Windows x64:** [Download NMP-windows-x64.exe](https://github.com/RainMark/nmp/releases/latest/download/NMP-windows-x64.exe),
+  move it to a permanent folder, and double-click it to run. No installer is
+  required.
+- **macOS arm64:** [Download NMP-macos-arm64.zip](https://github.com/RainMark/nmp/releases/latest/download/NMP-macos-arm64.zip),
+  unzip it, and drag `NMP.app` into the Applications folder.
+
+The current builds are not commercially signed. Windows SmartScreen or macOS
+Gatekeeper may therefore display a warning. Only continue when the file was
+downloaded from the official NMP Releases page above.
+
+#### Configure and use
+
+1. Enter the NMP server WebSocket address, for example
+   `wss://nmp.example.io`.
+2. Enter the token printed when the NMP server starts.
+3. Keep the default local port `1234`, or select another unused port.
+4. Click **保存配置**, then **启动代理**.
+5. Configure the browser or downstream proxy application to use SOCKS5 at
+   `127.0.0.1:1234`.
+
+The client can be used directly by a browser or as a local SOCKS5 outbound in
+Mihomo / Clash Verge Rev. System proxy and routing rules remain outside NMP.
+The app can start or stop the proxy, copy its address, and display live and
+rotating file logs.
 
 Configuration and logs are stored in the platform user directories:
 
@@ -76,10 +94,6 @@ Configuration and logs are stored in the platform user directories:
   `%LOCALAPPDATA%\NMP\logs\nmp-client.log`.
 - macOS: `~/Library/Application Support/NMP/client.toml` and
   `~/Library/Logs/NMP/nmp-client.log`.
-
-CI builds are unsigned development artifacts. Distribution without Windows
-SmartScreen or macOS Gatekeeper warnings requires platform code signing; macOS
-distribution also requires Apple notarization.
 
 Run the source tests locally with:
 
