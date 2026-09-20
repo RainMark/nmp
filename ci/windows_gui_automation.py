@@ -35,6 +35,13 @@ def button(window, title):
     return window.child_window(title=title, control_type='Button')
 
 
+def window_is_visible(window):
+    try:
+        return window.exists(timeout=0.2) and window.is_visible()
+    except Exception:  # noqa: BLE001 - A hidden Qt window leaves the UIA tree.
+        return False
+
+
 def desktop_elements(desktop):
     for window in desktop.windows():
         yield window
@@ -151,7 +158,8 @@ def main():
 
             window.set_focus()
             send_keys('%{F4}')
-            wait_until('main window to hide', lambda: not window.is_visible())
+            wait_until('main window to hide',
+                       lambda: not window_is_visible(window))
             if process.poll() is not None:
                 raise AssertionError('closing the window exited instead of hiding to tray')
 
@@ -163,7 +171,8 @@ def main():
                     lambda: find_tray_icon(desktop, application_pid) is not None)
                 tray_icon = find_tray_icon(desktop, application_pid)
             tray_icon.double_click_input()
-            wait_until('main window to return from tray', window.is_visible)
+            wait_until('main window to return from tray',
+                       lambda: window_is_visible(window))
 
             tray_icon = find_tray_icon(desktop, application_pid)
             tray_icon.right_click_input()
