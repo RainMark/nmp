@@ -14,7 +14,6 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter'],
     noarchive=False,
 )
 # The app does not install QTranslator, so bundled Qt translations are unused.
