@@ -39,7 +39,7 @@ if sys.platform == 'darwin':
         bundle,
         name='NMP.app',
         bundle_identifier='com.rainmark.nmp',
-        version='0.1.0',
+        version='0.2.0',
         info_plist={
             'NSPrincipalClass': 'NSApplication',
             'NSHighResolutionCapable': True,
