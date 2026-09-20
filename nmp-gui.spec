@@ -14,9 +14,13 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['tkinter'],
     noarchive=False,
 )
+# The app does not install QTranslator, so bundled Qt translations are unused.
+a.datas = [entry for entry in a.datas
+           if not entry[0].replace('\\', '/').startswith(
+               'PySide6/Qt/translations/')]
 pyz = PYZ(a.pure)
 
 if sys.platform == 'darwin':

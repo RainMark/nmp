@@ -1,6 +1,6 @@
 #!/bin/env python3
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name='nmp',
@@ -28,6 +28,11 @@ setup(
         'coloredlogs == 15.0.1',
         'tomli >= 2.0.1; python_version < "3.11"',
     ],
+    extras_require={
+        'desktop': [
+            'PySide6-Essentials == 6.11.2',
+        ],
+    },
 
     entry_points={
         'console_scripts':[

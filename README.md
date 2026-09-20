@@ -86,7 +86,9 @@ downloaded from the official NMP Releases page above.
 The client can be used directly by a browser or as a local SOCKS5 outbound in
 Mihomo / Clash Verge Rev. System proxy and routing rules remain outside NMP.
 The app can start or stop the proxy, copy its address, and display live and
-rotating file logs.
+rotating file logs. Closing the window hides it to the system tray while the
+proxy keeps running. Use the tray menu to show the window, start or stop the
+proxy, or quit NMP completely.
 
 Configuration and logs are stored in the platform user directories:
 
@@ -98,6 +100,6 @@ Configuration and logs are stored in the platform user directories:
 Run the source tests locally with:
 
 ```bash
-python -m pip install -e . pytest
+python -m pip install -e ".[desktop]" pytest
 python -m pytest -q
 ```
