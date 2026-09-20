@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='nmp',
-    version='0.1.0',
+    version='0.2.0',
     author='RainMark',
     author_email='rain.by.zhou@gmail.com',
     description='Network Multistage Pxxxx/Net Manager Project',
