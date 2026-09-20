@@ -122,8 +122,11 @@ def main():
             str(args.executable.resolve()), '--config', str(config_path)
         ])
         try:
-            window = desktop.window(title='NMP Client', process=process.pid)
-            window.wait('visible enabled ready', timeout=30)
+            # A one-file PyInstaller executable uses a parent bootloader
+            # process, so the Qt window belongs to its child process.
+            window = desktop.window(title='NMP Client')
+            window.wait('visible enabled', timeout=30)
+            application_pid = window.wrapper_object().element_info.process_id
             window.set_focus()
 
             save_button = button(window, '保存配置')
@@ -152,23 +155,24 @@ def main():
             if process.poll() is not None:
                 raise AssertionError('closing the window exited instead of hiding to tray')
 
-            tray_icon = find_tray_icon(desktop, process.pid)
+            tray_icon = find_tray_icon(desktop, application_pid)
             if tray_icon is None:
                 open_tray_overflow(desktop)
                 wait_until(
                     'NMP notification-area icon',
-                    lambda: find_tray_icon(desktop, process.pid) is not None)
-                tray_icon = find_tray_icon(desktop, process.pid)
+                    lambda: find_tray_icon(desktop, application_pid) is not None)
+                tray_icon = find_tray_icon(desktop, application_pid)
             tray_icon.double_click_input()
             wait_until('main window to return from tray', window.is_visible)
 
-            tray_icon = find_tray_icon(desktop, process.pid)
+            tray_icon = find_tray_icon(desktop, application_pid)
             tray_icon.right_click_input()
             wait_until(
                 'tray quit menu item',
                 lambda: find_visible_element(
-                    desktop, '退出 NMP', process.pid) is not None)
-            find_visible_element(desktop, '退出 NMP', process.pid).click_input()
+                    desktop, '退出 NMP', application_pid) is not None)
+            find_visible_element(
+                desktop, '退出 NMP', application_pid).click_input()
             wait_until('application to quit from tray menu',
                        lambda: process.poll() is not None)
 
