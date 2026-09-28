@@ -65,3 +65,43 @@ def test_socks5_server_can_stop_cleanly():
         await asyncio.wait_for(writer.wait_closed(), timeout=2)
 
     asyncio.run(run())
+
+
+def test_http_connect_to_nmp_tcp_round_trip():
+    async def run():
+        echo_server = await asyncio.start_server(echo_handler, '127.0.0.1', 0)
+        echo_port = echo_server.sockets[0].getsockname()[1]
+        nmp_server, nmp_port = await start_nmp_server()
+        config = ClientConfig(
+            endpoint=f'ws://127.0.0.1:{nmp_port}',
+            token='test-token',
+            port=unused_tcp_port())
+        server = SockV5Server(config)
+        await server.start()
+
+        try:
+            reader, writer = await asyncio.open_connection(
+                '127.0.0.1', config.port)
+            writer.write(
+                f'CONNECT 127.0.0.1:{echo_port} HTTP/1.1\r\n'.encode() +
+                b'Proxy-Authorization: Basic private-value\r\n\r\n')
+            await writer.drain()
+            assert await asyncio.wait_for(
+                reader.readuntil(b'\r\n\r\n'), timeout=2
+            ) == b'HTTP/1.1 200 Connection Established\r\n\r\n'
+
+            payload = b'nmp-http-connect-test'
+            writer.write(payload)
+            await writer.drain()
+            assert await asyncio.wait_for(
+                reader.readexactly(len(payload)), timeout=5) == payload
+            writer.close()
+            await writer.wait_closed()
+        finally:
+            await server.stop()
+            nmp_server.close()
+            await nmp_server.wait_closed()
+            echo_server.close()
+            await echo_server.wait_closed()
+
+    asyncio.run(run())
