@@ -107,11 +107,6 @@ Configuration and logs are stored in the platform user directories:
 - macOS: `~/Library/Application Support/NMP/client.toml` and
   `~/Library/Logs/NMP/nmp-client.log`.
 
-If an HTTP client sends `CONNECT` to NMP's SOCKS5 port, the client log reports
-`invalid socks ver: 67` together with `peer=` (the local source address) and
-`http_connect_target=` (the requested host and port). NMP remains a SOCKS5-only
-proxy. It logs only the CONNECT request target, not HTTP headers or credentials.
-
 Run the source tests locally with:
 
 ```bash
