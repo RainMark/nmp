@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import re
 import socket
 import struct
 from contextlib import suppress
@@ -22,12 +23,19 @@ class SockHandler:
         self.wsock = None
 
     async def handle(self):
-        r = await self.parse_ver_and_reply()
-        if not r:
+        request = await self.parse_ver_and_reply()
+        if not request:
             await self.sock.close()
             return
 
-        wsock = await self.connect_and_reply()
+        if request is True:
+            wsock = await self.connect_and_reply()
+        else:
+            addr, port = request
+            await self.sock.send(
+                b'HTTP/1.1 200 Connection Established\r\n\r\n')
+            data = await self.sock.recv(NMP_FASTPATH_MAX_BYTES)
+            wsock = await self.connect_target(addr, port, data)
         if wsock is None:
             await self.sock.close()
             return
@@ -48,6 +56,10 @@ class SockHandler:
         hdr = await self.sock.recv_exactly(2)
         ver, nmethods = struct.unpack('!BB', hdr)
         if SOCK_V5 != ver:
+            if hdr == b'CO':
+                target = await self.parse_http_connect(hdr)
+                if target is not None:
+                    return target
             self.logger.warning(f'invalid socks ver: {ver}')
             return False
 
@@ -59,6 +71,22 @@ class SockHandler:
 
         self.logger.warning(f'methods exchange fail: {methods}')
         return False
+
+    async def parse_http_connect(self, hdr):
+        try:
+            request = hdr + await asyncio.wait_for(
+                self.sock.reader.readuntil(b'\r\n\r\n'), timeout=1)
+        except (asyncio.IncompleteReadError, asyncio.LimitOverrunError,
+                asyncio.TimeoutError):
+            return None
+        if len(request) > 8192:
+            return None
+        match = re.fullmatch(
+            rb'CONNECT ([A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\]):([0-9]{1,5}) HTTP/1\.[01]',
+            request.split(b'\r\n', 1)[0])
+        if not match or not 1 <= int(match.group(2)) <= 65535:
+            return None
+        return match.group(1).strip(b'[]'), int(match.group(2))
 
     async def connect_and_reply(self):
         hdr = await self.sock.recv_exactly(4)
@@ -79,6 +107,9 @@ class SockHandler:
 
         await self.send_socks_reply(0, atyp, addr, port)
         data = await self.sock.recv(NMP_FASTPATH_MAX_BYTES)
+        return await self.connect_target(addr, port, data)
+
+    async def connect_target(self, addr, port, data):
         wsock = await self.connection_pool.try_get_connection()
         if wsock is not None:
             await self.connect_and_send_data(wsock, addr, port, data)
