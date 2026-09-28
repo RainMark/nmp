@@ -14,12 +14,6 @@ from nmp.proto import ATYP_DOMAINNAME, ATYP_IP_V4, CMD_CONNECT, IMPLEMENTED_METH
     NMP_FASTPATH_HOST, NMP_FASTPATH_MAX_BYTES, NMP_FASTPATH_PAYLOAD, NMP_FASTPATH_PORT, NMP_TCP_PIPE_WITH_DATA, RSV, SOCK_V5
 
 
-HTTP_CONNECT_LINE_LIMIT = 512
-HTTP_CONNECT_READ_TIMEOUT = 0.25
-HTTP_CONNECT_LINE = re.compile(
-    rb'CONNECT (\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9._-]+):([0-9]{1,5}) HTTP/1\.[01]\r?\n')
-
-
 class SockHandler:
     def __init__(self, sock, pool: ConnectionPool):
         self.logger = get_logger(__name__)
@@ -27,12 +21,6 @@ class SockHandler:
         self.connection_pool = pool
         self.pipeing = False
         self.wsock = None
-        peer = sock.writer.get_extra_info('peername')
-        if isinstance(peer, tuple) and len(peer) >= 2:
-            host = f'[{peer[0]}]' if ':' in peer[0] else peer[0]
-            self.peer = f'{host}:{peer[1]}'
-        else:
-            self.peer = 'unknown'
 
     async def handle(self):
         r = await self.parse_ver_and_reply()
@@ -61,10 +49,22 @@ class SockHandler:
         hdr = await self.sock.recv_exactly(2)
         ver, nmethods = struct.unpack('!BB', hdr)
         if SOCK_V5 != ver:
-            target = await self.http_connect_target(hdr) if hdr == b'CO' else None
+            target = 'unknown'
+            if hdr == b'CO':
+                try:
+                    line = hdr + await asyncio.wait_for(
+                        self.sock.reader.readline(), timeout=0.25)
+                    if len(line) <= 512:
+                        match = re.fullmatch(
+                            rb'CONNECT ([A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\]):([0-9]{1,5}) HTTP/1\.[01]\r?\n',
+                            line)
+                        if match and 1 <= int(match.group(2)) <= 65535:
+                            target = f'{match.group(1).decode()}:{int(match.group(2))}'
+                except (asyncio.TimeoutError, ValueError):
+                    pass
             self.logger.warning(
                 'invalid socks ver: %s peer=%s http_connect_target=%s',
-                ver, self.peer, target or 'unknown')
+                ver, self.sock.writer.get_extra_info('peername'), target)
             return False
 
         methods = await self.sock.recv_exactly(nmethods)
@@ -75,31 +75,6 @@ class SockHandler:
 
         self.logger.warning(f'methods exchange fail: {methods}')
         return False
-
-    async def http_connect_target(self, prefix):
-        line = bytearray(prefix)
-        deadline = asyncio.get_running_loop().time() + HTTP_CONNECT_READ_TIMEOUT
-        while b'\n' not in line and len(line) < HTTP_CONNECT_LINE_LIMIT:
-            remaining = deadline - asyncio.get_running_loop().time()
-            if remaining <= 0:
-                return None
-            try:
-                chunk = await asyncio.wait_for(
-                    self.sock.recv(HTTP_CONNECT_LINE_LIMIT - len(line)),
-                    timeout=remaining)
-            except asyncio.TimeoutError:
-                return None
-            if not chunk:
-                return None
-            line.extend(chunk)
-
-        match = HTTP_CONNECT_LINE.fullmatch(bytes(line).split(b'\n', 1)[0] + b'\n')
-        if match is None:
-            return None
-        port = int(match.group(2))
-        if not 1 <= port <= 65535:
-            return None
-        return f'{match.group(1).decode("ascii")}:{port}'
 
     async def connect_and_reply(self):
         hdr = await self.sock.recv_exactly(4)

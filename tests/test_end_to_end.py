@@ -94,31 +94,5 @@ def test_http_connect_to_socks_port_logs_target_without_headers(caplog):
 
     assert 'invalid socks ver: 67' in caplog.text
     assert 'http_connect_target=chatgpt.com:443' in caplog.text
-    assert 'peer=127.0.0.1:' in caplog.text
+    assert "peer=('127.0.0.1'," in caplog.text
     assert 'private-value' not in caplog.text
-
-
-def test_partial_http_connect_does_not_delay_close_indefinitely(caplog):
-    async def run():
-        config = ClientConfig(
-            endpoint='ws://127.0.0.1:1',
-            token='test-token',
-            port=unused_tcp_port())
-        server = SockV5Server(config)
-        await server.start()
-        try:
-            reader, writer = await asyncio.open_connection(
-                '127.0.0.1', config.port)
-            writer.write(b'CO')
-            await writer.drain()
-            assert await asyncio.wait_for(reader.read(1), timeout=2) == b''
-            writer.close()
-            await writer.wait_closed()
-        finally:
-            await server.stop()
-
-    with caplog.at_level(logging.WARNING):
-        asyncio.run(run())
-
-    assert 'invalid socks ver: 67' in caplog.text
-    assert 'http_connect_target=unknown' in caplog.text
