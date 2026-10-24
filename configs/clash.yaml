@@ -79,9 +79,9 @@ rules:
 - SUB-RULE,(RULE-SET,gfw),proxy-tcp
 - DOMAIN-SUFFIX,cn,DIRECT
 - RULE-SET,cn,DIRECT
-- NETWORK,udp,REJECT
+- NETWORK,udp,DIRECT
 - MATCH,NMP-Proxy
 sub-rules:
   proxy-tcp:
-  - NETWORK,udp,REJECT
+  - NETWORK,udp,DIRECT
   - MATCH,NMP-Proxy
