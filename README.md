@@ -110,6 +110,27 @@ Configuration and logs are stored in the platform user directories:
 - macOS: `~/Library/Application Support/NMP/client.toml` and
   `~/Library/Logs/NMP/nmp-client.log`.
 
+On Windows, enable **登录 Windows 后自动启动代理** to save the current
+configuration and start the proxy in the system tray at your next login.
+Disabling it removes login startup without stopping the current proxy.
+Manual launches still open the window without starting the proxy. If automatic
+startup fails, the window opens so you can correct the configuration or port.
+Use the tray menu to open an already-running instance.
+
+Keep the executable in a permanent location. After moving it, turn login
+startup off and on from the new location. This option is available in the
+packaged Windows app and does not require administrator privileges.
+
+#### Test builds and releases
+
+Download CI test builds from the **Desktop clients** workflow run's artifacts:
+`NMP-windows-x64` or `NMP-macos-arm64`. Pull requests run source tests and
+packaged-app checks before uploading these builds.
+
+Version tags publish the same CI-tested packages to GitHub Releases. Tags with
+a hyphen, such as `v0.4.0-rc.1`, create a prerelease; tags such as `v0.4.0`
+create a stable release. These are tag-format examples, not download links.
+
 Run the source tests locally with:
 
 ```bash
