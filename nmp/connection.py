@@ -36,6 +36,7 @@ class ConnectionPool:
         self.loop = asyncio.get_event_loop()
         self.closed = False
         self.pre_connect_task = None
+        self.pre_connect_wakeup = asyncio.Event()
         if self.pre_connect:
             self.pre_connect_task = self.loop.create_task(
                 self.__pre_connect_loop_task())
@@ -116,23 +117,27 @@ class ConnectionPool:
             return None
 
     async def try_get_connection(self):
-        if not self.pre_connect:
+        if not self.pre_connect or self.closed:
             return None
         self.last_active = time.time()
+        self.pre_connect_wakeup.set()
         if len(self.pre_connected_queue) > 0:
             wsock = self.pre_connected_queue.popleft()
             if wsock is not None and not wsock.closed:
                 return wsock
             self.logger.debug('closed!')
         self.logger.info('miss!')
-        self.loop.create_task(self.__pre_connect())
         return None
 
     async def __pre_connect(self):
         self.logger.debug('connect!')
         while (not self.closed and
                len(self.pre_connected_queue) < MAX_PRE_CONNECTED_CONNECTION):
-            self.pre_connected_queue.append(await self.new_connection())
+            connection = await self.new_connection()
+            if connection is None:
+                return False
+            self.pre_connected_queue.append(connection)
+        return True
 
     async def __close_pre_connect(self):
         while len(self.pre_connected_queue) > 0:
@@ -145,13 +150,19 @@ class ConnectionPool:
 
     async def __pre_connect_loop_task(self):
         while not self.closed:
+            self.pre_connect_wakeup.clear()
             if time.time() - self.last_active > MAX_INACTIVE_TIME:
                 if len(self.pre_connected_queue) > 0:
                     self.logger.info('close!')
                     await self.__close_pre_connect()
             else:
-                await self.__pre_connect()
-            await asyncio.sleep(PRE_CONNECTED_TASK_SLEEP)
+                if not await self.__pre_connect():
+                    # Requests must not bypass the retry delay during an outage.
+                    await asyncio.sleep(PRE_CONNECTED_TASK_SLEEP)
+                    continue
+            with suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    self.pre_connect_wakeup.wait(), PRE_CONNECTED_TASK_SLEEP)
 
     async def close(self):
         if self.closed:
