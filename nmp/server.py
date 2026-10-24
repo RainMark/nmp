@@ -6,6 +6,7 @@ import os
 import secrets
 import struct
 import websockets
+from contextlib import suppress
 from random import randint
 from nmp.listener import create_stream_socket
 from nmp.log import get_logger
@@ -34,10 +35,14 @@ class WebSockHandler:
             await self.wsock.close()
             return
 
-        reply = struct.pack('!B', NMP_CONNECT_OK)
-        await self.wsock.send(reply)
-        pipe = Pipe(self.wsock, sock)
-        await pipe.pipe()
+        try:
+            reply = struct.pack('!B', NMP_CONNECT_OK)
+            await self.wsock.send(reply)
+            pipe = Pipe(self.wsock, sock)
+            await pipe.pipe()
+        finally:
+            with suppress(Exception):
+                await sock.close()
 
     # ---------------------------------------------
     # | 2 bytes |  2 bytes |  length bytes | ...  |
@@ -51,9 +56,13 @@ class WebSockHandler:
             await self.wsock.close()
             return
 
-        await sock.send(data[offset:])
-        pipe = Pipe(self.wsock, sock)
-        await pipe.pipe()
+        try:
+            await sock.send(data[offset:])
+            pipe = Pipe(self.wsock, sock)
+            await pipe.pipe()
+        finally:
+            with suppress(Exception):
+                await sock.close()
 
     async def handle_datagram_type(self):
         pipe = DatagramPipe(self.wsock)
@@ -65,9 +74,13 @@ class WebSockHandler:
         if sock is None:
             await self.wsock.close()
             return
-        await sock.send(fastpath[2])
-        pipe = Pipe(self.wsock, sock)
-        await pipe.pipe()
+        try:
+            await sock.send(fastpath[2])
+            pipe = Pipe(self.wsock, sock)
+            await pipe.pipe()
+        finally:
+            with suppress(Exception):
+                await sock.close()
 
     async def stream_fastpath(self):
         headers = self.wsock.request_headers
