@@ -149,7 +149,9 @@ def main():
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                                 r'Software\Microsoft\Windows\CurrentVersion\Run') as key:
                 command, _ = winreg.QueryValueEx(key, 'NMP')
-            assert '--autostart' in command and str(config_path) in command
+            assert command == subprocess.list2cmdline([
+                str(args.executable.resolve()), '--autostart',
+                '--config', str(config_path.resolve())])
             assert 'ci-test-token' not in command
             startup.click_input()
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
@@ -240,12 +242,11 @@ def main():
             raise
         finally:
             if process.poll() is None:
-                process.terminate()
-                try:
-                    process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=5)
+                # Terminating only PyInstaller's parent leaves the GUI child
+                # holding the configuration lock and hides the original error.
+                subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                               capture_output=True, timeout=15)
+                process.wait(timeout=10)
 
     print(args.artifacts_dir.joinpath('result.txt').read_text(encoding='utf-8').strip())
 

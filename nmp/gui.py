@@ -513,25 +513,28 @@ def create_application(arguments=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description='NMP desktop client')
     parser.add_argument('--config', type=Path)
-    parser.add_argument('--autostart', action='store_true',
-                        help='start the saved proxy configuration in the tray')
+    if sys.platform == 'win32':
+        parser.add_argument('--autostart', action='store_true',
+                            help='start the saved proxy configuration in the tray')
     args = parser.parse_args(argv)
 
     application = create_application()
-    config_path = (args.config or default_config_path()).resolve()
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    # Keep the lock alive until the event loop and controller have stopped.
-    instance_lock = QLockFile(str(config_path) + '.gui.lock')
-    instance_lock.setStaleLockTime(0)
-    if not instance_lock.tryLock(0):
-        if instance_lock.error() != QLockFile.LockError.LockFailedError:
-            QMessageBox.critical(None, 'NMP 启动失败',
-                                 '无法创建实例锁，请检查配置目录的写入权限。')
-        elif not args.autostart:
-            QMessageBox.information(None, 'NMP', 'NMP 已在运行，请从系统托盘打开主窗口。')
-        return 1
+    config_path = args.config
+    if sys.platform == 'win32':
+        config_path = (config_path or default_config_path()).resolve()
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        # Keep the lock alive until the event loop and controller have stopped.
+        instance_lock = QLockFile(str(config_path) + '.gui.lock')
+        instance_lock.setStaleLockTime(0)
+        if not instance_lock.tryLock(0):
+            if instance_lock.error() != QLockFile.LockError.LockFailedError:
+                QMessageBox.critical(None, 'NMP 启动失败',
+                                     '无法创建实例锁，请检查配置目录的写入权限。')
+            elif not args.autostart:
+                QMessageBox.information(None, 'NMP', 'NMP 已在运行，请从系统托盘打开主窗口。')
+            return 1
     window = NmpClientWindow(config_path=config_path)
-    if args.autostart:
+    if getattr(args, 'autostart', False):
         QTimer.singleShot(0, window.start_at_login)
     else:
         window.show()

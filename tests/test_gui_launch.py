@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+import pytest
 
 from nmp.client import ClientConfig
 
@@ -23,6 +24,7 @@ def wait_for_port(process, port):
     raise AssertionError('proxy did not start')
 
 
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows-only login startup')
 def test_login_launch_duplicate_and_stale_lock(tmp_path):
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
