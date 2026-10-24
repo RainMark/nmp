@@ -195,7 +195,7 @@ class NmpClientWindow(QMainWindow):
         self.pre_connect_check = QCheckBox('启用预连接')
         form.addRow('', self.pre_connect_check)
         if sys.platform == 'win32':
-            self.autostart_check = QCheckBox('登录 Windows 后自动启动代理')
+            self.autostart_check = QCheckBox('开机自启')
             form.addRow('', self.autostart_check)
             try:
                 self._autostart_enabled = windows_startup.is_enabled()

@@ -144,7 +144,7 @@ def main():
             wait_until('configuration file to be saved', config_path.exists)
 
             startup = window.child_window(
-                title='登录 Windows 后自动启动代理', control_type='CheckBox')
+                title='开机自启', control_type='CheckBox')
             startup.click_input()
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                                 r'Software\Microsoft\Windows\CurrentVersion\Run') as key:
