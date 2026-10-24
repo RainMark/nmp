@@ -7,7 +7,7 @@ this local proxy.
 1. [Deploy the server](#server): Linux / macOS with Python 3.11 and Caddy.
 2. [Connect the desktop client](#desktop-client): Windows x64 or macOS Apple Silicon.
    A [command-line client](#command-line-client) is also available on Linux / macOS.
-3. Import the [Clash configuration](configs/README.md) for system proxy and routing rules.
+3. Import the [Clash configuration](#clash-configuration) for system proxy and routing rules.
 
 ## Server
 
@@ -86,7 +86,7 @@ xattr -dr com.apple.quarantine /Applications/NMP.app
 2. Keep local port `1234`, or choose another unused port.
 3. Click **保存配置**, then **启动代理**.
 4. Set your application's SOCKS5 proxy to `127.0.0.1:1234`, or import the
-   [Clash configuration](configs/README.md) for system proxy and routing rules.
+   [Clash configuration](#clash-configuration) for system proxy and routing rules.
 
 Closing the window keeps NMP running in the tray. Use the tray menu to reopen
 it or choose **退出 NMP** to quit. On Windows, enable **开机自启** to start the
@@ -123,6 +123,40 @@ curl --proxy socks5h://127.0.0.1:1234 https://www.google.com
 
 The same port also accepts HTTP CONNECT for HTTPS tunnels; it is not a full
 plain-HTTP forward proxy. Use Clash's mixed port when an application needs both.
+
+## Clash configuration
+
+For Mihomo / Clash Verge Rev: domestic domains connect directly; other TCP
+traffic uses NMP. Windows Codex, OpenAI, ChatGPT, Auth0, and GFW-listed domains
+have priority proxy rules. All UDP connects directly because NMP does not
+support UDP forwarding.
+
+1. Start NMP on local port `1234`.
+2. In Clash Verge Rev **订阅**, import this URL and select the configuration:
+
+   ```text
+   https://raw.githubusercontent.com/RainMark/nmp/master/configs/clash.yaml
+   ```
+
+3. Select **规则** mode and enable **系统代理**. Enable **TUN / 虚拟网卡模式**
+   to also capture applications that ignore the system proxy; both can be enabled.
+4. Check **连接** to confirm proxied connections use `NMP-Proxy → NMP-SOCKS5`.
+
+Start NMP before Clash. Initial import requires GitHub access; use an existing
+proxy or download [clash.yaml](configs/clash.yaml) for local import. Rule lists
+refresh every 24 hours. The subscription contains no server address or token.
+
+- **Manual application proxy:** HTTP / SOCKS5 at `127.0.0.1:7897`, or the port
+  shown by Clash if overridden.
+- **Different NMP port:** update the `NMP-SOCKS5` node's `port` to match.
+- **TUN:** keep the NMP process bypass rules to avoid proxy loops; update them
+  if you rename the executable.
+- **DNS:** foreign lookups use DoH through NMP; domestic lookups use domestic
+  DNS. System proxy alone does not capture every application's DNS.
+- **UDP:** QUIC, games, and voice traffic use the local network directly;
+  connectivity depends on that network.
+- **Codex:** adjust process path rules for nonstandard Windows installations.
+  On macOS, routing primarily uses domain rules.
 
 ## Development
 
