@@ -1,131 +1,140 @@
-## Project Nmp
+# NMP
 
-### Setup
+NMP forwards TCP traffic through a WebSocket server. The desktop client exposes
+SOCKS5 and HTTP CONNECT on `127.0.0.1:1234`; UDP forwarding is not supported by
+this local proxy.
+
+1. [Deploy the server](#server): Linux / macOS with Python 3.11 and Caddy.
+2. [Connect the desktop client](#desktop-client): Windows x64 or macOS Apple Silicon.
+   A [command-line client](#command-line-client) is also available on Linux / macOS.
+3. Import the [Clash configuration](configs/README.md) for system proxy and routing rules.
+
+## Server
+
+Run the following commands on your server with Python 3.11 installed.
+
+### Install from source
 
 ```bash
-$ git clone https://git.oxfs.io/nmp/nmp.git
-$ cd nmp
-$ python3.8 -m venv .env
-$ source .env/bin/activate
-$ python setup.py develop
+git clone https://github.com/RainMark/nmp.git
+cd nmp
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
 ```
 
-### Get Started
-
-- Start Nmp Server
+### Start the server
 
 ```bash
-$ nmp --server nmp --port 10010
-[2021-11-09 02:16:15,702] [   INFO] [main.py -- start_nmp_server():62] start nmp server: (127.0.0.1:10010)
-[2021-11-09 02:16:15,703] [   INFO] [server.py -- start_server():56] ### Token: f353f0ab21e2d93c ###
+nmp --server nmp --port 10010
 ```
 
-- Caddy2 Config
+The server listens on `127.0.0.1:10010`. On first startup, it securely generates
+a random token and saves it to `~/.NMP_TOKEN`; later starts reuse that token.
+Copy the token printed at startup into `YOUR_TOKEN` below and into your client.
+Replace `nmp.example.io` with your domain throughout the examples.
 
-```bash
+Point your domain to the server and configure Caddy for HTTPS; keep the NMP
+port on loopback.
+The Caddy path rule restricts access to the token-bearing URL:
+
+```caddyfile
 nmp.example.io {
-  ### Token: f353f0ab21e2d93c ###
-  handle /f353f0ab21e2d93c/* {
+  handle /YOUR_TOKEN/* {
     reverse_proxy 127.0.0.1:10010 {
       header_up -Origin
     }
   }
-  reverse_proxy https://www.baidu.com {
-    header_up -Origin
+  handle {
+    respond 404
   }
-
-  # tls {
-  #   dns cloudflare your_api_token
-  # }
 }
 ```
 
-- Start Local Sockv5 Server
+## Desktop client
 
-```bash
-$ nmp --server sockv5 --endpoint wss://nmp.example.io --port 1234 --token f353f0ab21e2d93c
-[2021-11-09 15:20:58,781] [   INFO] [main.py -- start_sockv5_server():68] start sockv5 server: (127.0.0.1:1234)
-```
+### Download and install
 
-- Test
+Download from [GitHub Releases](https://github.com/RainMark/nmp/releases/latest).
+The current builds are not commercially signed.
 
-```bash
-all_proxy='socks5h://127.0.0.1:1234' curl https://www.google.com
-```
-
-### Desktop Client
-
-For a ready-to-import Mihomo / Clash Verge Rev profile using local NMP port
-`1234`, see [Clash online configuration](configs/README.md).
-
-NMP Desktop Client provides a local SOCKS5 proxy with a graphical interface.
-It supports Windows x64 and Apple Silicon macOS (arm64).
-
-#### Download and install
-
-Download the newest version from the
-[GitHub Releases page](https://github.com/RainMark/nmp/releases/latest):
-
-- **Windows x64:** [Download NMP-windows-x64.exe](https://github.com/RainMark/nmp/releases/latest/download/NMP-windows-x64.exe),
-  move it to a permanent folder, and double-click it to run. No installer is
-  required.
-- **macOS arm64:** [Download NMP-macos-arm64.zip](https://github.com/RainMark/nmp/releases/latest/download/NMP-macos-arm64.zip),
-  unzip it, and drag `NMP.app` into the Applications folder.
-
-The current builds are not commercially signed. Windows SmartScreen or macOS
-Gatekeeper may therefore display a warning.
-
-**Windows (PowerShell)** — run in the folder where you want to keep NMP:
+**Windows x64** — run this in PowerShell from a permanent folder:
 
 ```powershell
 Invoke-WebRequest -Uri "https://github.com/RainMark/nmp/releases/latest/download/NMP-windows-x64.exe" -OutFile ".\NMP-windows-x64.exe"
 ```
 
-Defender exclusions are under **Windows Security → Virus & threat protection →
-Manage settings → Exclusions → Add or remove exclusions → Add an exclusion → File**
-(**Windows 安全中心 → 病毒和威胁防护 → 管理设置 → 排除项 → 添加或删除排除项 → 添加排除项 → 文件**).
+Double-click `NMP-windows-x64.exe`; no installer is required.
+
+Defender exclusions: **Windows 安全中心 → 病毒和威胁防护 → 管理设置 → 排除项 →
+添加或删除排除项 → 添加排除项 → 文件** (Windows Security → Virus & threat protection →
+Manage settings → Exclusions → Add or remove exclusions → Add an exclusion → File).
 If you have verified and trust the official download and choose to exclude it,
-select only `NMP-windows-x64.exe`; exclusions reduce antivirus protection for that file.
+select only `NMP-windows-x64.exe`; exclusions reduce protection for that file.
 
-When updating, quit NMP from its tray menu before replacing the executable.
-
-If macOS reports that `NMP.app` cannot be checked or opened, first make sure it
-has been moved to the Applications folder. Then remove the download quarantine
-attribute in Terminal and open the app again:
+**macOS arm64** — download [NMP-macos-arm64.zip](https://github.com/RainMark/nmp/releases/latest/download/NMP-macos-arm64.zip),
+unzip it, and move `NMP.app` to Applications. If macOS reports that the app cannot
+be checked or opened, run the following only for the official download:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/NMP.app
 ```
 
-Only run this command for `NMP.app` downloaded from the official Releases page.
+### Connect
 
-#### Configure and use
+1. Enter your server address, such as `wss://nmp.example.io`, and its token.
+2. Keep local port `1234`, or choose another unused port.
+3. Click **保存配置**, then **启动代理**.
+4. Set your application's SOCKS5 proxy to `127.0.0.1:1234`, or import the
+   [Clash configuration](configs/README.md) for system proxy and routing rules.
 
-1. Enter the NMP server WebSocket address, for example
-   `wss://nmp.example.io`.
-2. Enter the token printed when the NMP server starts.
-3. Keep the default local port `1234`, or select another unused port.
-4. Click **保存配置**, then **启动代理**.
-5. Configure the browser or downstream proxy application to use SOCKS5 at
-   `127.0.0.1:1234`.
+Closing the window keeps NMP running in the tray. Use the tray menu to reopen
+it or choose **退出 NMP** to quit. On Windows, enable **开机自启** to start the
+saved proxy in the tray after login; manual launches still open the window.
 
-The client can be used directly by a browser or as a local SOCKS5 outbound in
-Mihomo / Clash Verge Rev. System proxy and routing rules remain outside NMP.
-The app can start or stop the proxy, copy its address, and display live and
-rotating file logs. Closing the window hides it to the system tray while the
-proxy keeps running. Use the tray menu to show the window, start or stop the
-proxy, or quit NMP completely.
+To update, quit NMP from its tray menu, replace the executable or app, and reopen
+it. Connection settings are stored separately. Keep the Windows executable at
+the same path when **开机自启** is enabled; after moving it, switch the option
+off and on from the new location.
 
-Configuration and logs are stored in the platform user directories:
+### Configuration and logs
 
-- Windows: `%APPDATA%\NMP\client.toml` and
-  `%LOCALAPPDATA%\NMP\logs\nmp-client.log`.
-- macOS: `~/Library/Application Support/NMP/client.toml` and
-  `~/Library/Logs/NMP/nmp-client.log`.
+| Platform | Configuration | Log |
+| --- | --- | --- |
+| Windows | `%APPDATA%\NMP\client.toml` | `%LOCALAPPDATA%\NMP\logs\nmp-client.log` |
+| macOS | `~/Library/Application Support/NMP/client.toml` | `~/Library/Logs/NMP/nmp-client.log` |
 
-Run the source tests locally with:
+Use **打开日志目录** in the app to open the log folder.
+
+## Command-line client
+
+On Linux / macOS, follow [Install from source](#install-from-source) on the
+client machine, then start the local proxy with your server address and token:
+
+```bash
+nmp --server sockv5 --endpoint wss://nmp.example.io --port 1234 --token YOUR_TOKEN
+```
+
+Test SOCKS5 with remote hostname resolution:
+
+```bash
+curl --proxy socks5h://127.0.0.1:1234 https://www.google.com
+```
+
+The same port also accepts HTTP CONNECT for HTTPS tunnels; it is not a full
+plain-HTTP forward proxy. Use Clash's mixed port when an application needs both.
+
+## Development
+
+From the source checkout, install desktop dependencies and run the tests:
 
 ```bash
 python -m pip install -e ".[desktop]" pytest
 python -m pytest -q
 ```
+
+Run the GUI from source with `python nmp_client_gui.py`. **开机自启** is available
+in packaged Windows builds only.
+
+Test binaries are available in the [Desktop clients CI artifacts](https://github.com/RainMark/nmp/actions/workflows/desktop-clients.yml).
+Version tags publish CI-tested packages to GitHub Releases.
