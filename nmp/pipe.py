@@ -80,8 +80,10 @@ class Pipe:
 
     async def close(self):
         self.pipeing = False
-        await self.sock1.close()
-        await self.sock2.close()
+        try:
+            await self.sock1.close()
+        finally:
+            await self.sock2.close()
 
 
 class DatagramHandler:
