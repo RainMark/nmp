@@ -1,13 +1,33 @@
 # NMP
 
-NMP forwards TCP traffic through a WebSocket server. The desktop client exposes
-SOCKS5 and HTTP CONNECT on `127.0.0.1:1234`; UDP forwarding is not supported by
-this local proxy.
+NMP is a self-hosted proxy that connects applications to your own server over
+WebSocket. It provides a local SOCKS5 and HTTP CONNECT interface, with desktop
+clients for Windows and macOS and a command-line client for Linux and macOS.
 
-1. [Deploy the server](#server): Linux / macOS with Python 3.11 and Caddy.
-2. [Connect the desktop client](#desktop-client): Windows x64 or macOS Apple Silicon.
-   A [command-line client](#command-line-client) is also available on Linux / macOS.
-3. Import the [Clash configuration](#clash-configuration) for system proxy and routing rules.
+## Features
+
+- **WebSocket transport:** relay TCP connections through your server, with TLS
+  provided by an HTTPS reverse proxy.
+- **Desktop client:** manage connections, save settings, and run in the system
+  tray; packaged Windows builds also support starting the proxy at login.
+- **Configurable local proxy:** choose a listening port and connect applications
+  using SOCKS5 or HTTP CONNECT.
+- **Clash integration:** import the included Mihomo configuration for domain and
+  application routing, system proxy, and TUN support.
+
+## Getting started
+
+Deploy the server first, then connect a client. If you already have a server
+address and token, skip to client setup.
+
+1. [Deploy the server](#server).
+2. Connect the [desktop client](#desktop-client) or [command-line client](#command-line-client).
+3. Optionally set up [Clash](#clash-configuration) for system-wide routing.
+
+The examples use local port `1234`; you can choose another unused port. Keep
+application proxy settings and the Clash node port consistent with your choice.
+NMP supports TCP forwarding only. HTTP support is limited to CONNECT tunnels;
+use Clash's mixed port for applications that also need plain-HTTP proxying.
 
 ## Server
 
@@ -85,7 +105,7 @@ xattr -dr com.apple.quarantine /Applications/NMP.app
 1. Enter your server address, such as `wss://nmp.example.io`, and its token.
 2. Keep local port `1234`, or choose another unused port.
 3. Click **保存配置**, then **启动代理**.
-4. Set your application's SOCKS5 proxy to `127.0.0.1:1234`, or import the
+4. Set your application's SOCKS5 proxy to `127.0.0.1` and your chosen port, or import the
    [Clash configuration](#clash-configuration) for system proxy and routing rules.
 
 Closing the window keeps NMP running in the tray. Use the tray menu to reopen
@@ -121,17 +141,14 @@ Test SOCKS5 with remote hostname resolution:
 curl --proxy socks5h://127.0.0.1:1234 https://www.google.com
 ```
 
-The same port also accepts HTTP CONNECT for HTTPS tunnels; it is not a full
-plain-HTTP forward proxy. Use Clash's mixed port when an application needs both.
-
 ## Clash configuration
 
-For Mihomo / Clash Verge Rev: domestic domains connect directly; other TCP
+For Mihomo / Clash Verge Rev: Chinese domains connect directly; other TCP
 traffic uses NMP. Windows Codex, OpenAI, ChatGPT, Auth0, and GFW-listed domains
 have priority proxy rules. All UDP connects directly because NMP does not
 support UDP forwarding.
 
-1. Start NMP on local port `1234`.
+1. Start NMP. The supplied configuration expects local port `1234`; adjust the node port if needed.
 2. In Clash Verge Rev **订阅**, import this URL and select the configuration:
 
    ```text
@@ -172,3 +189,7 @@ in packaged Windows builds only.
 
 Test binaries are available in the [Desktop clients CI artifacts](https://github.com/RainMark/nmp/actions/workflows/desktop-clients.yml).
 Version tags publish CI-tested packages to GitHub Releases.
+
+## License
+
+[MIT](LICENSE).
