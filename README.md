@@ -55,6 +55,9 @@ all_proxy='socks5h://127.0.0.1:1234' curl https://www.google.com
 
 ### Desktop Client
 
+For a ready-to-import Mihomo / Clash Verge Rev profile using local NMP port
+`1234`, see [Clash online configuration](configs/README.md).
+
 NMP Desktop Client provides a local SOCKS5 proxy with a graphical interface.
 It supports Windows x64 and Apple Silicon macOS (arm64).
 
