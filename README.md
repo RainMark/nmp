@@ -75,36 +75,19 @@ Download the newest version from the
 The current builds are not commercially signed. Windows SmartScreen or macOS
 Gatekeeper may therefore display a warning.
 
-**Windows download warnings**
-
-- If Edge reports that the file is not commonly downloaded, or SmartScreen
-  reports an unrecognized app, this is a reputation warning, not a malware
-  diagnosis. Verify that the download came from the official release above.
-  If you trust the file and only this warning is present, Edge's **Keep** or
-  SmartScreen's **More info → Run anyway** options may be available. Managed
-  devices may require your administrator's approval.
-- If Defender reports a named threat, quarantines the file, or Edge explicitly
-  reports a virus, do not treat it as the reputation warning above. Update
-  Defender's protection definitions and report the NMP version, detection name
-  and SHA256 in a [GitHub issue](https://github.com/RainMark/nmp/issues).
-  Suspected false positives can be submitted to
-  [Microsoft for analysis](https://www.microsoft.com/en-us/wdsi/filesubmission).
-  Do not disable Defender or add exclusions as a routine installation step.
-
-To check the downloaded file's SHA256 in PowerShell:
+**Windows (PowerShell)** — run in the folder where you want to keep NMP:
 
 ```powershell
-Get-FileHash .\NMP-windows-x64.exe -Algorithm SHA256
+Invoke-WebRequest -Uri "https://github.com/RainMark/nmp/releases/latest/download/NMP-windows-x64.exe" -OutFile ".\NMP-windows-x64.exe"
 ```
 
-Compare it with the `sha256` digest of the asset for the **same version** in
-GitHub's release metadata. Matching hashes confirm that the file matches the
-published asset; they do not prove that it is malware-free. See Microsoft's
-[SmartScreen guidance](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation).
+Defender exclusions are under **Windows Security → Virus & threat protection →
+Manage settings → Exclusions → Add or remove exclusions → Add an exclusion → File**
+(**Windows 安全中心 → 病毒和威胁防护 → 管理设置 → 排除项 → 添加或删除排除项 → 添加排除项 → 文件**).
+If you have verified and trust the official download and choose to exclude it,
+select only `NMP-windows-x64.exe`; exclusions reduce antivirus protection for that file.
 
-To update NMP, choose **退出 NMP** from its tray menu, replace the executable
-in the same folder, and reopen it. Your connection configuration is stored
-separately. If **开机自启** is enabled, keep the executable at the same path.
+When updating, quit NMP from its tray menu before replacing the executable.
 
 If macOS reports that `NMP.app` cannot be checked or opened, first make sure it
 has been moved to the Applications folder. Then remove the download quarantine
