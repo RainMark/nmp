@@ -1,109 +1,87 @@
-# Mihomo / Clash Verge Rev. Start NMP on 127.0.0.1:1234 before importing.
-# Based on the active, user-verified NMP profile; see README.md for scope.
+# Mihomo / Clash Verge Rev. Start NMP on 127.0.0.1:1234 before use.
 mixed-port: 7897
 allow-lan: false
-bind-address: "127.0.0.1"
-mode: "rule"
-log-level: "info"
+bind-address: 127.0.0.1
+mode: rule
+log-level: info
 ipv6: false
-find-process-mode: "strict"
+find-process-mode: strict
 tun:
   enable: false
-  stack: "gvisor"
+  stack: gvisor
   auto-route: true
   auto-detect-interface: true
   strict-route: true
-  dns-hijack:
-    - "any:53"
+  dns-hijack: ['any:53']
 dns:
   enable: true
   ipv6: false
-  enhanced-mode: "fake-ip"
-  fake-ip-range: "198.18.0.1/16"
-  fake-ip-filter:
-    - "*.lan"
-    - "*.local"
-    - "localhost"
-  default-nameserver:
-    - "223.5.5.5"
-    - "119.29.29.29"
-  nameserver:
-    - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-  direct-nameserver:
-    - "https://dns.alidns.com/dns-query"
-    - "https://doh.pub/dns-query"
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter: ['*.lan', '*.local', localhost]
+  default-nameserver: [223.5.5.5, 119.29.29.29]
+  nameserver: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+  direct-nameserver: ['https://dns.alidns.com/dns-query', 'https://doh.pub/dns-query']
   nameserver-policy:
-    "+.openai.com":
-      - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-    "+.chatgpt.com":
-      - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-    "+.oaistatic.com":
-      - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-    "+.oaiusercontent.com":
-      - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-    "+.chat.com":
-      - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-    "+.auth0.com":
-      - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-    "rule-set:gfw":
-      - "https://1.1.1.1/dns-query#NMP-SOCKS5"
-    "+.cn":
-      - "https://dns.alidns.com/dns-query"
-    "rule-set:cn":
-      - "https://dns.alidns.com/dns-query"
+    +.openai.com: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+    +.chatgpt.com: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+    +.oaistatic.com: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+    +.oaiusercontent.com: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+    +.chat.com: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+    +.auth0.com: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+    rule-set:gfw: ['https://1.1.1.1/dns-query#NMP-SOCKS5']
+    +.cn: ['https://dns.alidns.com/dns-query']
+    rule-set:cn: ['https://dns.alidns.com/dns-query']
 proxies:
-  -
-    name: "NMP-SOCKS5"
-    type: "socks5"
-    server: "127.0.0.1"
-    port: 1234
-    udp: false
+- name: NMP-SOCKS5
+  type: socks5
+  server: 127.0.0.1
+  port: 1234
+  udp: false
 proxy-groups:
-  -
-    name: "NMP-Proxy"
-    type: "select"
-    proxies:
-      - "NMP-SOCKS5"
+- name: NMP-Proxy
+  type: select
+  proxies: [NMP-SOCKS5]
 rule-providers:
   gfw:
-    type: "http"
-    behavior: "domain"
-    format: "yaml"
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/gfw.txt"
-    path: "./ruleset/nmp-gfw.yaml"
+    type: http
+    behavior: domain
+    format: yaml
+    url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/gfw.txt
+    path: ./ruleset/nmp-gfw.yaml
     interval: 86400
-    proxy: "NMP-SOCKS5"
+    proxy: NMP-SOCKS5
   cn:
-    type: "http"
-    behavior: "domain"
-    format: "yaml"
-    url: "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt"
-    path: "./ruleset/nmp-cn.yaml"
+    type: http
+    behavior: domain
+    format: yaml
+    url: https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt
+    path: ./ruleset/nmp-cn.yaml
     interval: 86400
-    proxy: "NMP-SOCKS5"
+    proxy: NMP-SOCKS5
 rules:
-  - "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve"
-  - "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"
-  - "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve"
-  - "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve"
-  - "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve"
-  - "PROCESS-NAME,NMP-windows-x64.exe,DIRECT"
-  - "PROCESS-NAME,NMP.exe,DIRECT"
-  - "PROCESS-NAME,NMP,DIRECT"
-  - "SUB-RULE,(PROCESS-PATH-REGEX,(?i)^[A-Z]:\\\\Program Files\\\\WindowsApps\\\\OpenAI\\.Codex_[^\\\\]+\\\\app\\\\.*\\.exe$),proxy-tcp"
-  - "SUB-RULE,(PROCESS-PATH-REGEX,(?i)^[A-Z]:\\\\Users\\\\[^\\\\]+\\\\AppData\\\\Local\\\\OpenAI\\\\Codex\\\\.*\\.exe$),proxy-tcp"
-  - "SUB-RULE,(DOMAIN-SUFFIX,openai.com),proxy-tcp"
-  - "SUB-RULE,(DOMAIN-SUFFIX,chatgpt.com),proxy-tcp"
-  - "SUB-RULE,(DOMAIN-SUFFIX,oaistatic.com),proxy-tcp"
-  - "SUB-RULE,(DOMAIN-SUFFIX,oaiusercontent.com),proxy-tcp"
-  - "SUB-RULE,(DOMAIN-SUFFIX,chat.com),proxy-tcp"
-  - "SUB-RULE,(DOMAIN-SUFFIX,auth0.com),proxy-tcp"
-  - "SUB-RULE,(RULE-SET,gfw),proxy-tcp"
-  - "DOMAIN-SUFFIX,cn,DIRECT"
-  - "RULE-SET,cn,DIRECT"
-  - "NETWORK,udp,REJECT"
-  - "MATCH,NMP-Proxy"
+- IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+- IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+- IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+- IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+- IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
+- PROCESS-NAME,NMP-windows-x64.exe,DIRECT
+- PROCESS-NAME,NMP.exe,DIRECT
+- PROCESS-NAME,NMP,DIRECT
+- SUB-RULE,(PROCESS-PATH-REGEX,(?i)^[A-Z]:\\Program Files\\WindowsApps\\OpenAI\.Codex_[^\\]+\\app\\.*\.exe$),proxy-tcp
+- SUB-RULE,(PROCESS-PATH-REGEX,(?i)^[A-Z]:\\Users\\[^\\]+\\AppData\\Local\\OpenAI\\Codex\\.*\.exe$),proxy-tcp
+- SUB-RULE,(DOMAIN-SUFFIX,openai.com),proxy-tcp
+- SUB-RULE,(DOMAIN-SUFFIX,chatgpt.com),proxy-tcp
+- SUB-RULE,(DOMAIN-SUFFIX,oaistatic.com),proxy-tcp
+- SUB-RULE,(DOMAIN-SUFFIX,oaiusercontent.com),proxy-tcp
+- SUB-RULE,(DOMAIN-SUFFIX,chat.com),proxy-tcp
+- SUB-RULE,(DOMAIN-SUFFIX,auth0.com),proxy-tcp
+- SUB-RULE,(RULE-SET,gfw),proxy-tcp
+- DOMAIN-SUFFIX,cn,DIRECT
+- RULE-SET,cn,DIRECT
+- NETWORK,udp,REJECT
+- MATCH,NMP-Proxy
 sub-rules:
   proxy-tcp:
-    - "NETWORK,udp,REJECT"
-    - "MATCH,NMP-Proxy"
+  - NETWORK,udp,REJECT
+  - MATCH,NMP-Proxy
