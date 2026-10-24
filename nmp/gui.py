@@ -7,7 +7,7 @@ import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtCore import QLockFile, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QCloseEvent,
@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
 from nmp.client import ClientConfig, default_config_path
 from nmp.client_controller import ClientController, ClientState
 from nmp.log import TokenFilter, fmt, get_logger
+from nmp import windows_startup
 
 logger = get_logger(__name__)
 
@@ -100,6 +101,8 @@ class NmpClientWindow(QMainWindow):
         self._quitting = False
         self._quit_deadline = None
         self._handlers_closed = False
+        self._autostart_pending = False
+        self._autostart_enabled = False
 
         self._configure_logging()
         self._configure_window()
@@ -191,6 +194,20 @@ class NmpClientWindow(QMainWindow):
 
         self.pre_connect_check = QCheckBox('启用预连接')
         form.addRow('', self.pre_connect_check)
+        if sys.platform == 'win32':
+            self.autostart_check = QCheckBox('登录 Windows 后自动启动代理')
+            form.addRow('', self.autostart_check)
+            try:
+                self._autostart_enabled = windows_startup.is_enabled()
+                self.autostart_check.setChecked(self._autostart_enabled)
+            except OSError:
+                logger.exception('failed to read Windows startup setting')
+                self.autostart_check.setEnabled(False)
+                self.autostart_check.setToolTip('无法读取 Windows 启动项')
+            if not getattr(sys, 'frozen', False):
+                self.autostart_check.setEnabled(False)
+                self.autostart_check.setToolTip('请使用已打包的 NMP 客户端设置登录自启动')
+            self.autostart_check.clicked.connect(self.set_autostart)
         layout.addLayout(form)
 
         actions = QHBoxLayout()
@@ -294,6 +311,32 @@ class NmpClientWindow(QMainWindow):
         except Exception as error:
             QMessageBox.critical(self, '配置错误', str(error))
             return None
+
+    def set_autostart(self, enabled):
+        try:
+            if enabled and self.save_config() is None:
+                self.autostart_check.setChecked(self._autostart_enabled)
+                return
+            windows_startup.set_enabled(enabled, self.config_path)
+            self._autostart_enabled = enabled
+        except Exception as error:
+            self.autostart_check.setChecked(self._autostart_enabled)
+            QMessageBox.critical(self, '自启动设置失败', str(error))
+
+    def start_at_login(self):
+        """Start the saved configuration without rewriting it or flashing a window."""
+        try:
+            config = ClientConfig.from_toml(self.config_path)
+            config.validate()
+            self.token_filter.set_token(config.token)
+            self._autostart_pending = True
+            self.controller.start(config)
+            if not self.tray_available:
+                self.show_window()
+        except Exception as error:
+            self._autostart_pending = False
+            self.show_window()
+            QMessageBox.critical(self, '自动启动失败', str(error))
 
     def toggle_proxy(self):
         if self.controller.state in (ClientState.STOPPED, ClientState.ERROR):
@@ -409,6 +452,10 @@ class NmpClientWindow(QMainWindow):
             scrollbar.setValue(scrollbar.maximum())
 
     def _apply_state(self, state, message=''):
+        if self._autostart_pending and state in (ClientState.RUNNING, ClientState.ERROR):
+            self._autostart_pending = False
+            if state == ClientState.ERROR:
+                self.show_window()
         labels = {
             ClientState.STOPPED: ('● 已停止', '已停止', '#64748b'),
             ClientState.STARTING: ('● 启动中', '启动中', '#b45309'),
@@ -466,11 +513,28 @@ def create_application(arguments=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description='NMP desktop client')
     parser.add_argument('--config', type=Path)
+    parser.add_argument('--autostart', action='store_true',
+                        help='start the saved proxy configuration in the tray')
     args = parser.parse_args(argv)
 
     application = create_application()
-    window = NmpClientWindow(config_path=args.config)
-    window.show()
+    config_path = (args.config or default_config_path()).resolve()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    # Keep the lock alive until the event loop and controller have stopped.
+    instance_lock = QLockFile(str(config_path) + '.gui.lock')
+    instance_lock.setStaleLockTime(0)
+    if not instance_lock.tryLock(0):
+        if instance_lock.error() != QLockFile.LockError.LockFailedError:
+            QMessageBox.critical(None, 'NMP 启动失败',
+                                 '无法创建实例锁，请检查配置目录的写入权限。')
+        elif not args.autostart:
+            QMessageBox.information(None, 'NMP', 'NMP 已在运行，请从系统托盘打开主窗口。')
+        return 1
+    window = NmpClientWindow(config_path=config_path)
+    if args.autostart:
+        QTimer.singleShot(0, window.start_at_login)
+    else:
+        window.show()
     return application.exec()
 
 

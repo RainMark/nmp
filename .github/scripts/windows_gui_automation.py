@@ -3,6 +3,7 @@ import socket
 import subprocess
 import tempfile
 import time
+import winreg
 from pathlib import Path
 
 from pywinauto import Desktop
@@ -142,6 +143,24 @@ def main():
             save_button.click_input()
             wait_until('configuration file to be saved', config_path.exists)
 
+            startup = window.child_window(
+                title='登录 Windows 后自动启动代理', control_type='CheckBox')
+            startup.click_input()
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                r'Software\Microsoft\Windows\CurrentVersion\Run') as key:
+                command, _ = winreg.QueryValueEx(key, 'NMP')
+            assert '--autostart' in command and str(config_path) in command
+            assert 'ci-test-token' not in command
+            startup.click_input()
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                r'Software\Microsoft\Windows\CurrentVersion\Run') as key:
+                try:
+                    winreg.QueryValueEx(key, 'NMP')
+                except FileNotFoundError:
+                    pass
+                else:
+                    raise AssertionError('startup entry was not removed')
+
             start_button = button(window, '启动代理')
             start_button.wait('visible enabled ready', timeout=15)
             start_button.click_input()
@@ -185,9 +204,36 @@ def main():
             wait_until('application to quit from tray menu',
                        lambda: process.poll() is not None)
 
+            process = subprocess.Popen([
+                str(args.executable.resolve()), '--config', str(config_path),
+                '--autostart'])
+            wait_until('automatic SOCKS5 listener', lambda: port_is_open(proxy_port))
+            assert not window_is_visible(desktop.window(title='NMP Client'))
+            duplicate = subprocess.run([
+                str(args.executable.resolve()), '--config', str(config_path),
+                '--autostart'], timeout=30)
+            assert duplicate.returncode == 1
+            assert port_is_open(proxy_port)
+            tray_icon = find_tray_icon(desktop, process.pid)
+            if tray_icon is None:
+                open_tray_overflow(desktop)
+                wait_until('autostart tray icon',
+                           lambda: find_tray_icon(desktop, process.pid) is not None)
+                tray_icon = find_tray_icon(desktop, process.pid)
+            tray_icon.double_click_input()
+            window = desktop.window(title='NMP Client')
+            window.wait('visible enabled', timeout=15)
+            application_pid = window.wrapper_object().element_info.process_id
+            find_tray_icon(desktop, application_pid).right_click_input()
+            wait_until('autostart quit menu', lambda: find_visible_element(
+                desktop, '退出 NMP', application_pid) is not None)
+            find_visible_element(desktop, '退出 NMP', application_pid).click_input()
+            wait_until('autostart app to quit', lambda: process.poll() is not None)
+
             args.artifacts_dir.joinpath('result.txt').write_text(
                 'Windows packaged GUI launch, buttons, proxy lifecycle, close-to-tray, '
-                'tray restore, and tray quit passed.\n',
+                'tray restore, tray quit, startup registration, automatic proxy '
+                'startup, and duplicate-instance rejection passed.\n',
                 encoding='utf-8')
         except Exception:
             write_diagnostics(args.artifacts_dir / 'uia-elements.txt', desktop)
